@@ -1,0 +1,8 @@
+node_modules
+.git
+.env
+.env.example
+.gitignore
+README.md
+tsconfig.json
+src/tests

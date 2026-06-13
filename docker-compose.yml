@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: ezclasspay
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    restart: no
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:root@db:5432/ezclasspay"
+    command: ["npx", "prisma", "migrate", "deploy"]
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3006:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "postgresql://postgres:root@db:5432/ezclasspay"
+      JWT_SECRET: "${JWT_SECRET:-change-this-in-production}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-7d}"
+      PORT: "3000"
+      NODE_ENV: production
+      LOG_LEVEL: info
+
+volumes:
+  postgres_data:

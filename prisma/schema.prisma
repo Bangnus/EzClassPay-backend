@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  lineUid     String   @unique @map("line_uid")
+  displayName String   @map("display_name")
+  pictureUrl  String?  @map("picture_url")
+  email       String?
+  role        String   @default("MEMBER")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ownedRooms     Room[]        @relation("ManagerRooms")
+  joinedRooms    RoomMember[]
+  transactions   Transaction[]
+
+  @@map("users")
+}
+
+model Room {
+  id               String   @id @default(uuid())
+  managerId        String   @map("manager_id")
+  name             String
+  collectionType   String   @default("TARGET") @map("collection_type")
+  totalTargetAmount Float?  @map("total_target_amount")
+  periodicAmount   Float?   @map("periodic_amount")
+  promptpayNo      String   @map("promptpay_no")
+  isPremium        Boolean  @default(false) @map("is_premium")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  manager      User          @relation("ManagerRooms", fields: [managerId], references: [id], onDelete: Restrict)
+  members      RoomMember[]
+  transactions Transaction[]
+
+  @@map("rooms")
+}
+
+model RoomMember {
+  id        String   @id @default(uuid())
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("room_members")
+}
+
+model Transaction {
+  id            String    @id @default(uuid())
+  roomId        String    @map("room_id")
+  userId        String    @map("user_id")
+  amount        Float
+  paymentCycle  String    @map("payment_cycle")
+  slipUrl       String?   @map("slip_url")
+  status        String    @default("pending")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime? @updatedAt @map("updated_at")
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("transactions")
+}
