@@ -33,6 +33,7 @@ model Room {
   periodicAmount   Float?   @map("periodic_amount")
   promptpayNo      String   @map("promptpay_no")
   isPremium        Boolean  @default(false) @map("is_premium")
+  lineGroupId      String?  @unique @map("line_group_id")
   createdAt        DateTime @default(now()) @map("created_at")
 
   manager      User          @relation("ManagerRooms", fields: [managerId], references: [id], onDelete: Restrict)

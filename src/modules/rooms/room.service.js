@@ -36,6 +36,7 @@ export async function createRoom(data) {
     totalTargetAmount: data.total_target_amount || null,
     periodicAmount: data.periodic_amount || null,
     promptpayNo: data.promptpay_no,
+    lineGroupId: data.line_group_id || null,
     members: {
       create: {
         userId: user.id

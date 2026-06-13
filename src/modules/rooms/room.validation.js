@@ -12,6 +12,9 @@ export function validateCreateRoom(data) {
   if (!data.line_uid || typeof data.line_uid !== "string") {
     errors.push("line_uid is required");
   }
+  if (data.line_group_id && typeof data.line_group_id !== "string") {
+    errors.push("line_group_id must be a string if provided");
+  }
   return errors;
 }
 
