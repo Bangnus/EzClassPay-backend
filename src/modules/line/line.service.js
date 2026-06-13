@@ -53,11 +53,13 @@ export async function handleEvent(event) {
     
     // จังหวะที่ 2.1: มีคนเชิญบอทเข้ากลุ่มปุ๊บ (Event type = join)
     if (event.type === 'join') {
+      const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}`;
+
       return lineClient.replyMessage({
         replyToken: event.replyToken,
         messages: [{ 
           type: 'text', 
-          text: `สวัสดีครับทุกคน! 🎉 ผม EzClassPay พร้อมช่วยเก็บเงินกองกลางแล้ว\n\nให้ Manager กดลิงก์ด้านล่างนี้เพื่อ "เปิดห้องเก็บเงิน" สำหรับกลุ่มนี้ได้เลยครับ 👇\n\n[ลิงก์ LIFF สำหรับสร้างห้อง]` 
+          text: `สวัสดีครับทุกคน! 🎉 ผม EzClassPay ยินดีที่ได้รู้จักครับ\n\nรบกวนตัวแทนหรือคนดูแลเงินประจำกลุ่ม (Manager) กดลิงก์ด้านล่างนี้เพื่อ "ตั้งค่าห้องเก็บเงิน" ได้เลยครับ 👇\n\n${liffUrl}` 
         }]
       });
     }

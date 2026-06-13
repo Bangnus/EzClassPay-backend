@@ -30,17 +30,23 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "3006:3000"
+      - "3000:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "postgresql://postgres:root@db:5432/ezclasspay"
       JWT_SECRET: "${JWT_SECRET:-change-this-in-production}"
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-7d}"
       PORT: "3000"
-      NODE_ENV: production
-      LOG_LEVEL: info
+      NODE_ENV: development
+      LOG_LEVEL: debug
 
 volumes:
   postgres_data:

@@ -12,3 +12,6 @@ export default defineConfig({
     url: process.env["DATABASE_URL"],
   },
 });
+
+// npx prisma generate
+// docker compose exec app npx prisma generate
