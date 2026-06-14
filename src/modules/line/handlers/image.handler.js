@@ -1,5 +1,6 @@
 import prisma from "../../../config/database.js";
 import { uploadToS3 } from "../../../utils/s3.js";
+import { NO_PENDING_SLIP, slipSaved, SLIP_ERROR } from "../../../constants/messages.js";
 
 export async function handleImage(event, lineClient, blobClient) {
   const userId = event.source.userId;
@@ -13,10 +14,7 @@ export async function handleImage(event, lineClient, blobClient) {
   if (!pendingPayment) {
     return lineClient.replyMessage({
       replyToken: event.replyToken,
-      messages: [{
-        type: "text",
-        text: "❌ ไม่พบรายการรอสลิป กรุณากด \"💸 จ่ายเงิน\" เพื่อเลือกงวดที่ต้องการจ่ายก่อนครับ"
-      }]
+      messages: [{ type: "text", text: NO_PENDING_SLIP }]
     });
   }
 
@@ -42,7 +40,7 @@ export async function handleImage(event, lineClient, blobClient) {
       messages: [
         {
           type: "text",
-          text: `✅ บันทึกสลิปสำหรับ "${pendingPayment.period.name}" เรียบร้อยแล้วครับ!\nแอดมินจะทำการตรวจสอบเร็วๆ นี้ครับ ⏳`,
+          text: slipSaved(pendingPayment.period.name),
         },
       ],
     });
@@ -53,7 +51,7 @@ export async function handleImage(event, lineClient, blobClient) {
       messages: [
         {
           type: "text",
-          text: `❌ ขออภัยครับ เกิดข้อผิดพลาดในการบันทึกรูปภาพ กรุณาลองใหม่อีกครั้ง`,
+          text: SLIP_ERROR,
         },
       ],
     });

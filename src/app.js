@@ -8,7 +8,7 @@ import lineWebhookRoutes from "./modules/line/line.route.js";
 const app = express();
 
 // 1. เส้นทาง Webhook สำหรับ LINE (ต้องอยู่ก่อน express.json)
-app.use("/api/webhook", lineWebhookRoutes);
+app.use("/api/webhook", express.text({ type: "*/*", limit: "5mb" }), lineWebhookRoutes);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

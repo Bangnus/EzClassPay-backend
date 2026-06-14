@@ -1,21 +1,23 @@
-const LIFF_CREATE_ROOM = `https://liff.line.me/${process.env.LIFF_ID}`;
-const BOT_LINE_URL = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID}`;
+import { GROUP_WELCOME, BTN_CREATE_ROOM } from "../../../constants/messages.js";
 
 export async function handleJoin(event, lineClient) {
+  const groupId = event.source.groupId;
+  const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}?groupId=${groupId}`;
+
   return lineClient.replyMessage({
     replyToken: event.replyToken,
     messages: [
       {
         type: "text",
-        text: "สวัสดีครับกลุ่มใหม่! 👋 ผมบอท EzClassPay\nพร้อมช่วยคุณจัดการเงินกองกลางแล้วครับ",
+        text: GROUP_WELCOME,
         quickReply: {
           items: [
             {
               type: "action",
               action: {
                 type: "uri",
-                label: "👑 สร้างห้องกองกลาง",
-                uri: LIFF_CREATE_ROOM,
+                label: BTN_CREATE_ROOM,
+                uri: liffUrl,
               },
             },
           ],

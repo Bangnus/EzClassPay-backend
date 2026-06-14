@@ -25,9 +25,9 @@ export async function syncUser({ line_uid, name, profile_url, action }) {
   const user = await authRepo.upsertByLineUid(line_uid, { displayName: name, pictureUrl: profile_url });
 
   if (action === "create_room") {
-    await lineClient.linkRichMenuToUser(line_uid, RICH_MENU.MANAGER);
+    await lineClient.linkRichMenuIdToUser(line_uid, RICH_MENU.MANAGER);
   } else if (action === "pay_bill") {
-    await lineClient.linkRichMenuToUser(line_uid, RICH_MENU.MEMBER);
+    await lineClient.linkRichMenuIdToUser(line_uid, RICH_MENU.MEMBER);
   }
 
   return {

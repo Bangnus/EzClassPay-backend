@@ -1,5 +1,13 @@
 import prisma from "../../../config/database.js";
 import { handleShowRooms } from "./richmenu.handler.js";
+import {
+  NO_PERIODS, GREETING, ROOM_NOT_SETUP, NOT_REGISTERED, NO_MEMBERSHIP,
+  roomSummary, allRoomsSummary, MANUAL, UNKNOWN_COMMAND,
+  LABEL_PAYMENT_AMOUNT, LABEL_STATUS,
+  STATUS_NOT_PAID, STATUS_PAID, STATUS_PENDING, STATUS_AWAITING_SLIP,
+  BTN_CREATE_ROOM, BTN_PAY_CHECK, BTN_SUMMARY,
+  BTN_PAY_PERIOD, ALT_PERIOD_LIST, displayPayingPeriod
+} from "../../../constants/messages.js";
 
 export async function handleShowPeriods(event, lineClient) {
   const userId = event.source.userId;
@@ -25,7 +33,7 @@ export async function handleShowPeriods(event, lineClient) {
   if (!room || room.periods.length === 0) {
     return lineClient.replyMessage({
       replyToken: event.replyToken,
-      messages: [{ type: 'text', text: 'ยังไม่มีรายการงวดที่ต้องจ่ายในขณะนี้ครับ 🎉' }]
+      messages: [{ type: 'text', text: NO_PERIODS }]
     });
   }
 
@@ -50,22 +58,22 @@ export async function handleShowPeriods(event, lineClient) {
     let statusText, statusColor, badgeColor, showPayButton;
 
     if (!payment || payment.status === 'REJECTED') {
-      statusText = 'รอจ่าย';
+      statusText = STATUS_NOT_PAID;
       statusColor = '#ff334b';
       badgeColor = '#ff334b';
       showPayButton = true;
     } else if (payment.status === 'APPROVED') {
-      statusText = 'จ่ายแล้ว';
+      statusText = STATUS_PAID;
       statusColor = '#00c300';
       badgeColor = '#00c300';
       showPayButton = false;
     } else if (payment.status === 'PENDING') {
-      statusText = 'รอตรวจสอบ';
+      statusText = STATUS_PENDING;
       statusColor = '#ffb81c';
       badgeColor = '#ffb81c';
       showPayButton = false;
     } else {
-      statusText = 'รอสลิป';
+      statusText = STATUS_AWAITING_SLIP;
       statusColor = '#ffb81c';
       badgeColor = '#ffb81c';
       showPayButton = false;
@@ -108,7 +116,7 @@ export async function handleShowPeriods(event, lineClient) {
             layout: 'horizontal',
             spacing: 'sm',
             contents: [
-              { type: 'text', text: 'ยอดที่ต้องจ่าย', color: '#8c8c8c', size: 'sm', flex: 1 },
+              { type: 'text', text: LABEL_PAYMENT_AMOUNT, color: '#8c8c8c', size: 'sm', flex: 1 },
               { type: 'text', text: `฿${period.amount}`, color: '#333333', size: 'sm', flex: 1, align: 'end', weight: 'bold' }
             ]
           },
@@ -117,7 +125,7 @@ export async function handleShowPeriods(event, lineClient) {
             layout: 'horizontal',
             spacing: 'sm',
             contents: [
-              { type: 'text', text: 'สถานะ', color: '#8c8c8c', size: 'sm', flex: 1 },
+              { type: 'text', text: LABEL_STATUS, color: '#8c8c8c', size: 'sm', flex: 1 },
               { type: 'text', text: statusText, color: statusColor, size: 'sm', flex: 1, align: 'end', weight: 'bold' }
             ]
           }
@@ -138,9 +146,9 @@ export async function handleShowPeriods(event, lineClient) {
             height: 'sm',
             action: {
               type: 'postback',
-              label: '💸 กดเพื่อจ่ายงวดนี้',
+              label: BTN_PAY_PERIOD,
               data: `action=pay&period_id=${period.id}`,
-              displayText: `กำลังจ่าย ${period.name}`
+              displayText: displayPayingPeriod(period.name)
             }
           }
         ]
@@ -154,7 +162,7 @@ export async function handleShowPeriods(event, lineClient) {
     replyToken: event.replyToken,
     messages: [{
       type: 'flex',
-      altText: 'รายการงวดที่ต้องชำระเงิน',
+      altText: ALT_PERIOD_LIST,
       contents: { type: 'carousel', contents: bubbles }
     }]
   });
@@ -163,80 +171,130 @@ export async function handleShowPeriods(event, lineClient) {
 export async function handleText(event, lineClient) {
   const text = event.message.text.trim();
   const replyToken = event.replyToken;
-  const isGroupChat = event.source.type === 'group';
+  const chatType = event.source.type;
+  const isGroupChat = chatType === 'group';
 
-  // debug: log ข้อความที่ได้รับ
-  console.log('[handleText] received:', JSON.stringify(text), 'group:', isGroupChat);
+  console.log('[handleText] received:', JSON.stringify(text), 'type:', chatType);
 
-  if (isGroupChat && text.match(/^@[Ee][Zz][Cc]lass[Pp]ay/)) {
+  // ===== 1. @mention (ใช้ได้ทั้ง group และ 1-on-1) =====
+  if (text.match(/@[Ee][Zz][Cc]lass[Pp]ay/)) {
+    const groupId = event.source.groupId;
+    const liffUrl = groupId
+      ? `https://liff.line.me/${process.env.LIFF_ID}?groupId=${groupId}`
+      : `https://liff.line.me/${process.env.LIFF_ID}`;
     const botLineUrl = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID || '@ไอดีบอท'}`;
+
+    const quickReplyItems = [];
+
+    if (groupId) {
+      quickReplyItems.push({
+        type: 'action',
+        action: { type: 'uri', label: BTN_CREATE_ROOM, uri: liffUrl }
+      });
+    }
+
+    quickReplyItems.push(
+      {
+        type: 'action',
+        action: { type: 'uri', label: BTN_PAY_CHECK, uri: botLineUrl }
+      },
+      {
+        type: 'action',
+        action: { type: 'message', label: BTN_SUMMARY, text: 'ดูยอดรวม' }
+      }
+    );
 
     return lineClient.replyMessage({
       replyToken,
       messages: [{
         type: 'text',
-        text: 'สวัสดีครับ! เรียกใช้ EzClassPay มีอะไรให้ผมช่วยไหมครับ? เลือกเมนูด้านล่างได้เลย 👇',
-        quickReply: {
-          items: [
-            {
-              type: 'action',
-              action: {
-                type: 'uri',
-                label: '💸 จ่ายเงิน/เช็กยอด',
-                uri: botLineUrl
-              }
-            },
-            {
-              type: 'action',
-              action: {
-                type: 'message',
-                label: '📊 ดูยอดรวม',
-                text: 'ดูยอดรวม'
-              }
-            }
-          ]
-        }
+        text: GREETING,
+        quickReply: { items: quickReplyItems }
       }]
     });
   }
 
-  if (isGroupChat && text === 'ดูยอดรวม') {
-    const groupId = event.source.groupId;
+  // ===== 2. ดูยอดรวม (group → ดูยอดห้อง, 1-on-1 → ดูยอดรวมทุกห้อง) =====
+  if (text === 'ดูยอดรวม') {
+    if (isGroupChat) {
+      const groupId = event.source.groupId;
+      const room = await prisma.room.findUnique({
+        where: { lineGroupId: groupId },
+        include: {
+          periods: {
+            include: {
+              payments: { where: { status: 'APPROVED' } }
+            }
+          }
+        }
+      });
 
-    const room = await prisma.room.findUnique({
-      where: { lineGroupId: groupId },
+      if (!room) {
+        return lineClient.replyMessage({
+          replyToken,
+          messages: [{ type: 'text', text: ROOM_NOT_SETUP }]
+        });
+      }
+
+      const totalTarget = room.totalTargetAmount || 0;
+      const totalPaid = room.periods.reduce((sum, p) => sum + p.payments.length * p.amount, 0);
+
+      return lineClient.replyMessage({
+        replyToken,
+        messages: [{
+          type: 'text',
+          text: roomSummary(room.name, totalPaid, totalTarget, room.periods.length)
+        }]
+      });
+    }
+
+    // 1-on-1: หาห้องที่ user เป็นสมาชิกอยู่
+    const user = await prisma.user.findUnique({ where: { lineUid: event.source.userId } });
+    if (!user) {
+      return lineClient.replyMessage({
+        replyToken,
+        messages: [{ type: 'text', text: NOT_REGISTERED }]
+      });
+    }
+
+    const memberships = await prisma.roomMember.findMany({
+      where: { userId: user.id },
       include: {
-        periods: {
+        room: {
           include: {
-            payments: {
-              where: { status: 'APPROVED' }
+            periods: {
+              include: {
+                payments: { where: { status: 'APPROVED' } }
+              }
             }
           }
         }
       }
     });
 
-    if (!room) {
+    if (memberships.length === 0) {
       return lineClient.replyMessage({
         replyToken,
-        messages: [{ type: 'text', text: 'ยังไม่ได้ตั้งค่าห้องนี้ในระบบครับ รบกวนผู้ดูแลดำเนินการก่อน 🙏' }]
+        messages: [{ type: 'text', text: NO_MEMBERSHIP }]
       });
     }
 
-    const totalTarget = room.totalTargetAmount || 0;
-    const totalPaid = room.periods.reduce((sum, p) => {
-      return sum + p.payments.length * p.amount;
-    }, 0);
+    const summaryText = memberships.map(m => {
+      const r = m.room;
+      const totalPaid = r.periods.reduce((sum, p) => sum + p.payments.length * p.amount, 0);
+      return `• ${r.name}: เก็บได้ ${totalPaid} บาท`;
+    }).join('\n');
 
     return lineClient.replyMessage({
       replyToken,
       messages: [{
         type: 'text',
-        text: `📊 สรุปยอดห้อง "${room.name}"\n\n💰 เก็บได้แล้ว: ${totalPaid} บาท\n📌 เป้าหมาย: ${totalTarget > 0 ? totalTarget + ' บาท' : 'ไม่ได้ตั้งเป้า'}\n📆 จำนวนงวด: ${room.periods.length} งวด`
+        text: allRoomsSummary(summaryText)
       }]
     });
   }
 
+  // ===== 3. คำสั่งอื่นๆ (ใช้ได้ทั้ง group และ 1-on-1) =====
   if (text === 'แสดงห้องทั้งหมด') {
     return handleShowRooms(event, lineClient);
   }
@@ -244,14 +302,17 @@ export async function handleText(event, lineClient) {
   if (text === 'คู่มือการใช้งาน') {
     return lineClient.replyMessage({
       replyToken,
-      messages: [{
-        type: 'text',
-        text: '📖 คู่มือการใช้งาน EzClassPay\n\n1️⃣ เพิ่มบอทเข้าห้อง LINE\n2️⃣ ตั้งค่าห้องผ่าน LIFF\n3️⃣ สร้างงวดเก็บเงิน\n4️⃣ ลูกบ้านกด "💸 จ่ายเงิน"\n5️⃣ ส่งสลิปเพื่อยืนยัน\n\n📌 สอบถามเพิ่มเติม: ติดต่อผู้ดูแลระบบ'
-      }]
+      messages: [{ type: 'text', text: MANUAL }]
     });
   }
 
   if (text === 'แจ้งโอนเงิน' || text === 'จ่ายเงิน') {
     return handleShowPeriods(event, lineClient);
   }
+
+  // ===== 4. fallback สำหรับข้อความที่ไม่รู้จัก =====
+  return lineClient.replyMessage({
+    replyToken,
+    messages: [{ type: 'text', text: UNKNOWN_COMMAND }]
+  });
 }

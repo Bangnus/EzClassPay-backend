@@ -1,15 +1,21 @@
 import prisma from "../../../config/database.js";
 import { RICH_MENU } from "../../../constants/richmenu.js";
+import {
+  ROOM_SWITCH_BACK, ROOM_NOT_FOUND, NO_ROOMS,
+  welcomeManager, welcomeMember,
+  LABEL_PROMPTPAY, LABEL_ROLE_MANAGER, LABEL_ROLE_MEMBER,
+  BTN_SELECT_ROOM, ALT_ROOM_LIST, displaySelectingRoom
+} from "../../../constants/messages.js";
 
 export async function handleSwitchRoom(event, lineClient) {
   const userId = event.source.userId;
-  await lineClient.linkRichMenu(userId, RICH_MENU.SELECT);
+  await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.SELECT);
 
   return lineClient.replyMessage({
     replyToken: event.replyToken,
     messages: [{
       type: 'text',
-      text: 'กลับสู่หน้าหลักเรียบร้อยครับ เลือกห้องที่ต้องการจัดการได้เลย 👆'
+      text: ROOM_SWITCH_BACK
     }]
   });
 }
@@ -26,7 +32,7 @@ export async function handleSelectRoom(event, lineClient) {
   if (!room) {
     return lineClient.replyMessage({
       replyToken: event.replyToken,
-      messages: [{ type: 'text', text: 'ไม่พบข้อมูลห้องนี้ครับ' }]
+      messages: [{ type: 'text', text: ROOM_NOT_FOUND }]
     });
   }
 
@@ -36,22 +42,22 @@ export async function handleSelectRoom(event, lineClient) {
   const isManager = room.managerId === user.id;
 
   if (isManager) {
-    await lineClient.linkRichMenu(userId, RICH_MENU.MANAGER);
+    await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.MANAGER);
     return lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [{
         type: 'text',
-        text: `ยินดีต้อนรับ Manager ห้อง "${room.name}" ครับ 👑`
+        text: welcomeManager(room.name)
       }]
     });
   }
 
-  await lineClient.linkRichMenu(userId, RICH_MENU.MEMBER);
+  await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.MEMBER);
   return lineClient.replyMessage({
     replyToken: event.replyToken,
     messages: [{
       type: 'text',
-      text: `คุณกำลังจัดการห้อง "${room.name}" ในฐานะสมาชิกครับ 😊`
+      text: welcomeMember(room.name)
     }]
   });
 }
@@ -69,6 +75,9 @@ export async function handleShowRooms(event, lineClient) {
 
   if (!user) return;
 
+  const ownedIds = new Set(user.ownedRooms.map(r => r.id));
+  const joinedIds = new Set(user.joinedRooms.map(jr => jr.roomId));
+
   const allRooms = [
     ...user.ownedRooms,
     ...user.joinedRooms.map(jr => jr.room)
@@ -83,59 +92,93 @@ export async function handleShowRooms(event, lineClient) {
       replyToken: event.replyToken,
       messages: [{
         type: 'text',
-        text: 'คุณยังไม่มีห้องที่เข้าร่วมอยู่ครับ กรุณาให้ผู้ดูแลเพิ่มคุณในห้อง หรือสร้างห้องผ่าน LIFF 👇'
+        text: NO_ROOMS
       }]
     });
   }
 
-  const bubbles = uniqueRooms.map(room => ({
-    type: 'bubble',
-    body: {
-      type: 'box',
-      layout: 'vertical',
-      spacing: 'md',
-      contents: [
-        {
-          type: 'text',
-          text: room.name,
-          weight: 'bold',
-          size: 'lg',
-          wrap: true
-        },
-        {
-          type: 'box',
-          layout: 'horizontal',
-          spacing: 'sm',
-          contents: [
-            { type: 'text', text: 'เลขพร้อมเพย์', color: '#8c8c8c', size: 'sm', flex: 1 },
-            { type: 'text', text: room.promptpayNo, color: '#333333', size: 'sm', flex: 1, align: 'end' }
-          ]
-        }
-      ]
-    },
-    footer: {
-      type: 'box',
-      layout: 'vertical',
-      spacing: 'sm',
-      contents: [{
-        type: 'button',
-        style: 'primary',
-        height: 'sm',
-        action: {
-          type: 'postback',
-          label: 'เลือกห้องนี้',
-          data: `action=select_room&room_id=${room.id}`,
-          displayText: `กำลังเลือกห้อง ${room.name}`
-        }
-      }]
-    }
-  }));
+  const bubbles = uniqueRooms.map(room => {
+    const isManager = ownedIds.has(room.id);
+    const roleText = isManager ? LABEL_ROLE_MANAGER : LABEL_ROLE_MEMBER;
+    const roleBadgeColor = isManager ? '#FFF3E0' : '#E8F5E9';
+    const roleTextColor = isManager ? '#E65100' : '#2E7D32';
+
+    return {
+      type: 'bubble',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            alignItems: 'center',
+            contents: [
+              {
+                type: 'text',
+                text: room.name,
+                weight: 'bold',
+                size: 'lg',
+                wrap: true,
+                flex: 1
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                contents: [{
+                  type: 'text',
+                  text: roleText,
+                  size: 'xs',
+                  color: roleTextColor,
+                  weight: 'bold',
+                  align: 'center'
+                }],
+                backgroundColor: roleBadgeColor,
+                cornerRadius: '8px',
+                paddingAll: '3px',
+                paddingStart: '7px',
+                paddingEnd: '7px',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }
+            ]
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              { type: 'text', text: LABEL_PROMPTPAY, color: '#8c8c8c', size: 'sm', flex: 1 },
+              { type: 'text', text: room.promptpayNo, color: '#333333', size: 'sm', flex: 1, align: 'end' }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [{
+          type: 'button',
+          style: 'primary',
+          height: 'sm',
+          action: {
+            type: 'postback',
+            label: BTN_SELECT_ROOM,
+            data: `action=select_room&room_id=${room.id}`,
+            displayText: displaySelectingRoom(room.name)
+          }
+        }]
+      }
+    };
+  });
 
   return lineClient.replyMessage({
     replyToken: event.replyToken,
     messages: [{
       type: 'flex',
-      altText: 'รายการห้องทั้งหมด',
+      altText: ALT_ROOM_LIST,
       contents: { type: 'carousel', contents: bubbles }
     }]
   });

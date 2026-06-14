@@ -1,6 +1,7 @@
 import prisma from "../../../config/database.js";
 import { handleSwitchRoom, handleSelectRoom } from "./richmenu.handler.js";
 import { handleShowPeriods } from "./text.handler.js";
+import { PERIOD_NOT_FOUND, paymentDetail, SEND_SLIP_PROMPT } from "../../../constants/messages.js";
 
 export async function handlePostback(event, lineClient) {
   const data = new URLSearchParams(event.postback.data);
@@ -29,7 +30,7 @@ export async function handlePostback(event, lineClient) {
     if (!period) {
       return lineClient.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: 'text', text: 'ไม่พบข้อมูลงวดนี้ กรุณาลองใหม่อีกครั้งครับ' }]
+        messages: [{ type: 'text', text: PERIOD_NOT_FOUND }]
       });
     }
 
@@ -55,7 +56,7 @@ export async function handlePostback(event, lineClient) {
       messages: [
         {
           type: 'text',
-          text: `📋 รายการ: ${period.name}\n💰 ยอดโอน: ${period.amount} บาท\n🏦 พร้อมเพย์: ${promptpayNo}`
+          text: paymentDetail(period.name, period.amount, promptpayNo)
         },
         {
           type: 'image',
@@ -64,7 +65,7 @@ export async function handlePostback(event, lineClient) {
         },
         {
           type: 'text',
-          text: '👉 โอนเสร็จแล้ว ส่งรูปสลิปเข้ามาในแชทนี้ได้เลยครับ 📸'
+          text: SEND_SLIP_PROMPT
         }
       ]
     });

@@ -1,5 +1,12 @@
 import * as roomRepo from "./room.repository.js";
 import { lineClient } from "../line/line.service.js";
+import {
+  ERR_USER_NOT_FOUND, ERR_DUPLICATE_ROOM, ERR_ROOM_NOT_FOUND,
+  ERR_NOT_AUTHORIZED_UPDATE, ERR_NOT_AUTHORIZED_DELETE,
+  ALT_ROOM_CREATED, ROOM_CREATED_HEADER,
+  LABEL_CREATOR, LABEL_TYPE, LABEL_AMOUNT, LABEL_PROMPTPAY,
+  COLLECTION_TARGET, COLLECTION_FIXED
+} from "../../constants/messages.js";
 
 export async function getAllRooms() {
   return roomRepo.findAll();
@@ -8,7 +15,7 @@ export async function getAllRooms() {
 export async function getRoomById(id) {
   const room = await roomRepo.findById(id);
   if (!room) {
-    const error = new Error("Room not found");
+    const error = new Error(ERR_ROOM_NOT_FOUND);
     error.statusCode = 404;
     throw error;
   }
@@ -24,7 +31,7 @@ export async function createRoom(data) {
   });
 
   if (!user) {
-    const error = new Error("ไม่พบผู้ใช้งาน กรุณาทักแชทบอทเพื่อลงทะเบียนก่อน");
+    const error = new Error(ERR_USER_NOT_FOUND);
     error.statusCode = 404;
     throw error;
   }
@@ -33,22 +40,16 @@ export async function createRoom(data) {
 
 
   // 2. ดักเช็กก่อนว่า กลุ่มนี้มีห้องอยู่แล้วหรือยัง? (1 กลุ่ม = 1 ห้อง)
-  console.log("📌 [createRoom] line_group_id ที่ได้รับ:", data.line_group_id);
-
   if (data.line_group_id) {
     const existingRoom = await prisma.room.findUnique({
       where: { lineGroupId: data.line_group_id }
     });
 
-    console.log("📌 [createRoom] existingRoom ที่查询ได้:", existingRoom?.id || null);
-
     if (existingRoom) {
-      const error = new Error("กลุ่มนี้มีการตั้งห้องกองกลางไว้แล้ว ไม่สามารถสร้างซ้ำได้ครับ");
+      const error = new Error(ERR_DUPLICATE_ROOM);
       error.statusCode = 400;
       throw error;
     }
-  } else {
-    console.warn("⚠️ [createRoom] ไม่มี line_group_id — จะไม่ตรวจสอบห้องซ้ำ");
   }
 
   // 3. สร้างห้องลงตาราง Room และเพิ่ม Manager เป็นสมาชิกลงตาราง RoomMember ทันที (Nested Write)
@@ -87,20 +88,18 @@ export async function createRoom(data) {
 
 async function sendRoomCreatedFlex(room, manager) {
   const collectionTypeText =
-    room.collectionType === "TARGET" ? "มีเป้าหมายรวม" : "ยอดคงที่ (รายเดือน)";
+    room.collectionType === "TARGET" ? COLLECTION_TARGET : COLLECTION_FIXED;
   const amountText =
     room.collectionType === "TARGET"
       ? `฿${Number(room.totalTargetAmount).toLocaleString()}`
       : `฿${Number(room.periodicAmount).toLocaleString()}/เดือน`;
-
-  const liffRoomUrl = `https://liff.line.me/${process.env.LIFF_ID}`;
 
   await lineClient.pushMessage({
     to: room.lineGroupId,
     messages: [
       {
         type: "flex",
-        altText: "✅ สร้างห้องกองกลางสำเร็จ!",
+        altText: ALT_ROOM_CREATED,
         contents: {
           type: "bubble",
           header: {
@@ -109,7 +108,7 @@ async function sendRoomCreatedFlex(room, manager) {
             contents: [
               {
                 type: "text",
-                text: "✅ สร้างห้องกองกลางสำเร็จ!",
+                text: ROOM_CREATED_HEADER,
                 weight: "bold",
                 size: "xl",
                 color: "#16a34a",
@@ -144,7 +143,7 @@ async function sendRoomCreatedFlex(room, manager) {
                 contents: [
                   {
                     type: "text",
-                    text: "ผู้สร้าง",
+                    text: LABEL_CREATOR,
                     weight: "bold",
                     size: "sm",
                     flex: 1,
@@ -167,7 +166,7 @@ async function sendRoomCreatedFlex(room, manager) {
                 contents: [
                   {
                     type: "text",
-                    text: "ประเภท",
+                    text: LABEL_TYPE,
                     weight: "bold",
                     size: "sm",
                     flex: 1,
@@ -190,7 +189,7 @@ async function sendRoomCreatedFlex(room, manager) {
                 contents: [
                   {
                     type: "text",
-                    text: "จำนวนเงิน",
+                    text: LABEL_AMOUNT,
                     weight: "bold",
                     size: "sm",
                     flex: 1,
@@ -213,7 +212,7 @@ async function sendRoomCreatedFlex(room, manager) {
                 contents: [
                   {
                     type: "text",
-                    text: "พร้อมเพย์",
+                    text: LABEL_PROMPTPAY,
                     weight: "bold",
                     size: "sm",
                     flex: 1,
@@ -242,12 +241,12 @@ async function sendRoomCreatedFlex(room, manager) {
 export async function updateRoom(id, data, managerId) {
   const room = await roomRepo.findById(id);
   if (!room) {
-    const error = new Error("Room not found");
+    const error = new Error(ERR_ROOM_NOT_FOUND);
     error.statusCode = 404;
     throw error;
   }
   if (room.managerId !== managerId) {
-    const error = new Error("Not authorized to update this room");
+    const error = new Error(ERR_NOT_AUTHORIZED_UPDATE);
     error.statusCode = 403;
     throw error;
   }
@@ -257,12 +256,12 @@ export async function updateRoom(id, data, managerId) {
 export async function deleteRoom(id, managerId) {
   const room = await roomRepo.findById(id);
   if (!room) {
-    const error = new Error("Room not found");
+    const error = new Error(ERR_ROOM_NOT_FOUND);
     error.statusCode = 404;
     throw error;
   }
   if (room.managerId !== managerId) {
-    const error = new Error("Not authorized to delete this room");
+    const error = new Error(ERR_NOT_AUTHORIZED_DELETE);
     error.statusCode = 403;
     throw error;
   }
