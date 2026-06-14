@@ -27,5 +27,6 @@ export const roomSelect = {
       pictureUrl: true,
       lineUid: true
     }
-  }
+  },
+  periods: true
 };

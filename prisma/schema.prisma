@@ -19,7 +19,7 @@ model User {
 
   ownedRooms     Room[]        @relation("ManagerRooms")
   joinedRooms    RoomMember[]
-  transactions   Transaction[]
+  payments       Payment[]
 
   @@map("users")
 }
@@ -38,7 +38,7 @@ model Room {
 
   manager      User          @relation("ManagerRooms", fields: [managerId], references: [id], onDelete: Restrict)
   members      RoomMember[]
-  transactions Transaction[]
+  periods      Period[]
 
   @@map("rooms")
 }
@@ -56,19 +56,29 @@ model RoomMember {
   @@map("room_members")
 }
 
-model Transaction {
-  id            String    @id @default(uuid())
-  roomId        String    @map("room_id")
-  userId        String    @map("user_id")
-  amount        Float
-  paymentCycle  String    @map("payment_cycle")
-  slipUrl       String?   @map("slip_url")
-  status        String    @default("pending")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime? @updatedAt @map("updated_at")
+model Period {
+  id          String    @id @default(uuid())
+  roomId      String    @map("room_id")
+  name        String
+  amount      Float
+  createdAt   DateTime  @default(now()) @map("created_at")
 
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  payments    Payment[]
 
-  @@map("transactions")
+  @@map("periods")
+}
+
+model Payment {
+  id          String    @id @default(uuid())
+  periodId    String    @map("period_id")
+  lineUid     String    @map("line_uid")
+  slipUrl     String?   @map("slip_url")
+  status      String    @default("PENDING") // "AWAITING_SLIP", "PENDING", "APPROVED", "REJECTED"
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  period      Period    @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [lineUid], references: [lineUid], onDelete: Restrict)
+
+  @@map("payments")
 }

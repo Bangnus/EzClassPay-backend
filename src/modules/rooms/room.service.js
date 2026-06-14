@@ -28,6 +28,9 @@ export async function createRoom(data) {
     throw error;
   }
 
+  // 1.5 ลบการเช็ก 1 Manager = 1 ห้องออก (User 1 คนสามารถสร้างได้หลายห้อง)
+
+
   // 2. ดักเช็กก่อนว่า กลุ่มนี้มีห้องอยู่แล้วหรือยัง? (1 กลุ่ม = 1 ห้อง)
   if (data.line_group_id) {
     const existingRoom = await prisma.room.findUnique({
@@ -53,6 +56,12 @@ export async function createRoom(data) {
     members: {
       create: {
         userId: user.id
+      }
+    },
+    periods: {
+      create: {
+        name: "งวดที่ 1 (แรกเข้า)",
+        amount: data.periodic_amount || data.total_target_amount || 0
       }
     }
   });
