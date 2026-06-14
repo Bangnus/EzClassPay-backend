@@ -6,6 +6,7 @@ const env = {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   nodeEnv: process.env.NODE_ENV || "development",
+  bucketServiceUrl: process.env.BUCKET_SERVICE_URL || "http://localhost:3001",
 };
 
 export default env;

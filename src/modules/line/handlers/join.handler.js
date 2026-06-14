@@ -1,10 +1,26 @@
+const LIFF_CREATE_ROOM = `https://liff.line.me/${process.env.LIFF_ID}`;
+const BOT_LINE_URL = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID}`;
+
 export async function handleJoin(event, lineClient) {
-  const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}`;
   return lineClient.replyMessage({
     replyToken: event.replyToken,
-    messages: [{ 
-      type: 'text', 
-      text: `สวัสดีครับทุกคน! 🎉 ผม EzClassPay ยินดีที่ได้รู้จักครับ\n\nรบกวนตัวแทนกลุ่ม (Manager) กดลิงก์ด้านล่างนี้เพื่อ "ตั้งค่าห้องเก็บเงิน" ได้เลยครับ 👇\n\n${liffUrl}` 
-    }]
+    messages: [
+      {
+        type: "text",
+        text: "สวัสดีครับกลุ่มใหม่! 👋 ผมบอท EzClassPay\nพร้อมช่วยคุณจัดการเงินกองกลางแล้วครับ",
+        quickReply: {
+          items: [
+            {
+              type: "action",
+              action: {
+                type: "uri",
+                label: "👑 สร้างห้องกองกลาง",
+                uri: LIFF_CREATE_ROOM,
+              },
+            },
+          ],
+        },
+      },
+    ],
   });
 }

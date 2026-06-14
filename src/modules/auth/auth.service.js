@@ -1,4 +1,6 @@
 import { generateToken } from "../../utils/generateToken.js";
+import { lineClient } from "../line/line.service.js";
+import { RICH_MENU } from "../../constants/richmenu.js";
 import * as authRepo from "./auth.repository.js";
 
 export async function loginWithLine({ lineUid, displayName, pictureUrl }) {
@@ -16,6 +18,24 @@ export async function loginWithLine({ lineUid, displayName, pictureUrl }) {
       email: user.email,
       role: user.role,
     },
+  };
+}
+
+export async function syncUser({ line_uid, name, profile_url, action }) {
+  const user = await authRepo.upsertByLineUid(line_uid, { displayName: name, pictureUrl: profile_url });
+
+  if (action === "create_room") {
+    await lineClient.linkRichMenuToUser(line_uid, RICH_MENU.MANAGER);
+  } else if (action === "pay_bill") {
+    await lineClient.linkRichMenuToUser(line_uid, RICH_MENU.MEMBER);
+  }
+
+  return {
+    id: user.id,
+    lineUid: user.lineUid,
+    displayName: user.displayName,
+    pictureUrl: user.pictureUrl,
+    role: user.role,
   };
 }
 

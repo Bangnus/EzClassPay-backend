@@ -15,6 +15,8 @@ export const blobClient = new line.messagingApi.MessagingApiBlobClient({
 });
 
 export async function handleEvent(event) {
+  console.log("📥 มี Event เข้ามา:", JSON.stringify(event, null, 2));
+
   const userId = event.source.userId;
   const chatType = event.source.type;
 

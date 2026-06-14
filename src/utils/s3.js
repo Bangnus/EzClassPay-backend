@@ -1,36 +1,31 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-
-const s3Client = new S3Client({
-  region: process.env.S3_REGION || 'ap-southeast-1',
-  endpoint: process.env.S3_ENDPOINT, // จำเป็นสำหรับ 3rd party S3 (เช่น Supabase, MinIO, Cloudflare R2)
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || '',
-    secretAccessKey: process.env.S3_SECRET_KEY || '',
-  },
-  forcePathStyle: true, // มักจะเปิดไว้สำหรับ 3rd party S3
-});
+const getBaseUrl = () => process.env.BUCKET_SERVICE_URL || 'http://localhost:3001';
 
 export const uploadToS3 = async (fileBuffer, fileName, contentType) => {
-  if (!process.env.S3_BUCKET_NAME) {
-    console.warn("⚠️ S3_BUCKET_NAME is not set. Skipping upload and returning dummy URL.");
-    return `https://dummy-bucket.s3.amazonaws.com/slips/${fileName}`;
+  const formData = new FormData();
+  const blob = new Blob([fileBuffer], { type: contentType });
+  formData.append('file', blob, fileName);
+
+  const response = await fetch(`${getBaseUrl()}/api/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'File upload failed');
   }
 
-  const key = `slips/${Date.now()}-${fileName}`;
-  const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: contentType,
-    // ACL: 'public-read' // เปิดใช้ถ้า Bucket อนุญาต
-  };
+  const result = await response.json();
+  return result.data.url;
+};
 
-  const command = new PutObjectCommand(params);
-  await s3Client.send(command);
-  
-  // สร้าง Public URL กลับไป
-  if (process.env.S3_PUBLIC_URL) {
-     return `${process.env.S3_PUBLIC_URL}/${key}`;
+export const deleteFile = async (filename) => {
+  const response = await fetch(`${getBaseUrl()}/api/files/${encodeURIComponent(filename)}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'File deletion failed');
   }
-  return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${key}`;
 };
