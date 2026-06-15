@@ -87,14 +87,18 @@ async function setupRichMenus() {
       areas: [
         {
           bounds: { x: 0, y: 0, width: 1250, height: 843 },
-          action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID}/verify-slip` }
+          action: { type: "postback", data: "action=pay" }
         },
         {
           bounds: { x: 1250, y: 0, width: 1250, height: 843 },
+          action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID}/verify-slip` }
+        },
+        {
+          bounds: { x: 0, y: 843, width: 1250, height: 843 },
           action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID}/dashboard` }
         },
         {
-          bounds: { x: 0, y: 843, width: 2500, height: 843 },
+          bounds: { x: 1250, y: 843, width: 1250, height: 843 },
           action: { type: "postback", data: "action=switch_room" }
         }
       ]

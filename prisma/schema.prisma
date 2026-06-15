@@ -12,7 +12,6 @@ model User {
   lineUid     String   @unique @map("line_uid")
   displayName String   @map("display_name")
   pictureUrl  String?  @map("picture_url")
-  email       String?
   role        String   @default("MEMBER")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -39,6 +38,7 @@ model Room {
   manager      User          @relation("ManagerRooms", fields: [managerId], references: [id], onDelete: Restrict)
   members      RoomMember[]
   periods      Period[]
+  expenses     Expense[]
 
   @@map("rooms")
 }
@@ -81,4 +81,16 @@ model Payment {
   user        User      @relation(fields: [lineUid], references: [lineUid], onDelete: Restrict)
 
   @@map("payments")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  title       String
+  amount      Float
+  receiptUrl  String?  @map("receipt_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  roomId      String   @map("room_id")
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
 }
