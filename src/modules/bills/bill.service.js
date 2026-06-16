@@ -68,7 +68,6 @@ export async function generateMonthlyBills(month, year) {
 
     for (const member of room.members) {
       try {
-        console.log(`[Bills] Sending bill notification to user ${member.user.lineUid}`);
         await sendBillNotification(member.user, {
           roomId: room.id,
           roomName: room.name,
@@ -155,15 +154,6 @@ async function sendBillNotification(user, bill) {
         layout: "vertical",
         spacing: "md",
         contents: [
-          {
-            type: "text",
-            text: bill.roomName,
-            weight: "bold",
-            size: "xxl",
-            color: "#111827",
-            wrap: true,
-            align: "center",
-          },
           { type: "separator" },
           {
             type: "box",
@@ -287,16 +277,10 @@ async function sendBillNotification(user, bill) {
     },
   };
 
-  console.log(`[Bills] pushMessage to user ${user.lineUid}`);
-  try {
-    await lineClient.pushMessage({
-      to: user.lineUid,
-      messages: [flexMessage],
-    });
-    console.log(`[Bills] pushMessage success to user ${user.lineUid}`);
-  } catch (e) {
-    console.error(`[Bills] pushMessage FAILED to user ${user.lineUid}: ${e.message}`, e.statusCode, e.originalError?.response?.data || "");
-  }
+  await lineClient.pushMessage({
+    to: user.lineUid,
+    messages: [flexMessage],
+  });
 }
 
 async function sendGroupBillNotification(room, bill) {

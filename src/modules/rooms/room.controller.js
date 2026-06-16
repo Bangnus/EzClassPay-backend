@@ -3,6 +3,15 @@ import { validateCreateRoom, validateUpdateRoom } from "./room.validation.js";
 import { success, error } from "../../utils/response.js";
 import { STATUS_CODE } from "../../constants/statusCode.js";
 
+export async function syncMembers(req, res, next) {
+  try {
+    const result = await roomService.syncMembers(req.params.id);
+    return success(res, result, "Synced members successfully");
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getAll(req, res, next) {
   try {
     const rooms = await roomService.getAllRooms();

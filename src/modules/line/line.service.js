@@ -5,7 +5,7 @@ import prisma from "../../config/database.js";
 import { handlePostback } from "./handlers/postback.handler.js";
 import { handleImage } from "./handlers/image.handler.js";
 import { handleText } from "./handlers/text.handler.js";
-import { handleJoin } from "./handlers/join.handler.js";
+import { handleBotJoin, handleMemberJoined } from "./handlers/join.handler.js";
 
 export const lineClient = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_ACCESS_TOKEN
@@ -24,11 +24,25 @@ export async function handleEvent(event) {
   if (userId) {
     try {
       const profile = await lineClient.getProfile(userId);
-      await prisma.user.upsert({
+      const user = await prisma.user.upsert({
         where: { lineUid: userId },
         update: { displayName: profile.displayName, pictureUrl: profile.pictureUrl },
         create: { lineUid: userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
       });
+
+      // ถ้ามาจากกลุ่ม — auto-add เป็น room member
+      if (chatType === "group" && event.source.groupId) {
+        const room = await prisma.room.findUnique({
+          where: { lineGroupId: event.source.groupId },
+        });
+        if (room) {
+          await prisma.roomMember.upsert({
+            where: { roomId_userId: { roomId: room.id, userId: user.id } },
+            update: {},
+            create: { roomId: room.id, userId: user.id },
+          });
+        }
+      }
     } catch (e) {
       console.error('Failed to upsert user profile:', e.message);
     }
@@ -48,7 +62,11 @@ export async function handleEvent(event) {
   }
   
   if (event.type === 'join' && chatType === 'group') {
-    return handleJoin(event, lineClient);
+    return handleBotJoin(event, lineClient);
+  }
+
+  if (event.type === 'memberJoined' && chatType === 'group') {
+    return handleMemberJoined(event, lineClient);
   }
 
   return Promise.resolve(null);

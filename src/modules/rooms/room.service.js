@@ -267,3 +267,23 @@ export async function deleteRoom(id, managerId) {
   }
   await roomRepo.deleteById(id);
 }
+
+export async function syncMembers(roomId) {
+  const room = await roomRepo.findById(roomId);
+  if (!room) {
+    const error = new Error(ERR_ROOM_NOT_FOUND);
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!room.lineGroupId) {
+    const error = new Error("Room is not linked to any LINE group");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    roomId: room.id,
+    roomName: room.name,
+    message: "LINE trial channel ไม่สามารถดึงรายชื่อสมาชิกเก่าได้ กรุณาให้สมาชิกส่งข้อความในกลุ่มเพื่อลงทะเบียนอัตโนมัติ",
+  };
+}

@@ -2,8 +2,12 @@ import prisma from "../../config/database.js";
 import { billSelect } from "./bill.model.js";
 
 export function findBillsByRoom(roomId, options = {}) {
+  const where = { roomId };
+  if (options.lineUid) {
+    where.user = { lineUid: options.lineUid };
+  }
   return prisma.bill.findMany({
-    where: { roomId },
+    where,
     select: billSelect,
     orderBy: [{ year: "desc" }, { month: "desc" }],
     take: options.limit || undefined,

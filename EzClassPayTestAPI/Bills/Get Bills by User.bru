@@ -4,23 +4,19 @@ meta {
   seq: 2
 }
 
-docs {
-  ดึง bill ของ user ที่指定 → ดูว่ามียอดค้างจ่ายอะไรบ้าง
-}
-
 get {
   url: {{base_url}}/bills/user/{{user_id}}?limit=5
   body: none
   auth: inherit
 }
 
-vars:post-response {
-  user_id: res.body.data[0].userId
+vars:pre-request {
+  base_url: http://localhost:3000/api
+  user_id: 314f47f3-b647-44ed-9026-4f76fbfe80b1
 }
 
-settings {
-  encodeUrl: true
-  timeout: 0
+vars:post-response {
+  user_id: res.body.data[0].userId
 }
 
 script:pre-request {
@@ -28,4 +24,13 @@ script:pre-request {
   if (!user_id) {
     bru.setVar("user_id", "314f47f3-b647-44ed-9026-4f76fbfe80b1");
   }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  ดึง bill ของ user ที่指定 → ดูว่ามียอดค้างจ่ายอะไรบ้าง
 }

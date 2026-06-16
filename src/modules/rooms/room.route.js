@@ -9,5 +9,6 @@ router.get("/:id", roomController.getById);
 router.post("/", roomController.create);
 router.patch("/:id", authenticate, roomController.update);
 router.delete("/:id", authenticate, roomController.remove);
+router.post("/:id/sync-members", roomController.syncMembers);
 
 export default router;
