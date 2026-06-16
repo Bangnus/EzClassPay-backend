@@ -15,7 +15,6 @@ export async function loginWithLine({ lineUid, displayName, pictureUrl }) {
       lineUid: user.lineUid,
       displayName: user.displayName,
       pictureUrl: user.pictureUrl,
-      email: user.email,
       role: user.role,
     },
   };
@@ -51,7 +50,6 @@ export async function getProfile(userId) {
     lineUid: user.lineUid,
     displayName: user.displayName,
     pictureUrl: user.pictureUrl,
-    email: user.email,
     role: user.role,
     createdAt: user.createdAt,
   };

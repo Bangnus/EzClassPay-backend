@@ -1,4 +1,5 @@
 const getBaseUrl = () => process.env.BUCKET_SERVICE_URL || 'http://localhost:3001';
+const getPublicUrl = () => process.env.PUBLIC_API_URL || `http://localhost:${process.env.PORT || 3000}`;
 
 export const uploadToS3 = async (fileBuffer, fileName, contentType) => {
   const formData = new FormData();
@@ -16,7 +17,9 @@ export const uploadToS3 = async (fileBuffer, fileName, contentType) => {
   }
 
   const result = await response.json();
-  return result.data.url;
+  const minioUrl = result.data.url;
+  const filename = minioUrl.split('/').pop();
+  return `${getPublicUrl()}/api/files/${filename}`;
 };
 
 export const deleteFile = async (filename) => {

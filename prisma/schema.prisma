@@ -19,6 +19,7 @@ model User {
   ownedRooms     Room[]        @relation("ManagerRooms")
   joinedRooms    RoomMember[]
   payments       Payment[]
+  bills          Bill[]
 
   @@map("users")
 }
@@ -39,6 +40,8 @@ model Room {
   members      RoomMember[]
   periods      Period[]
   expenses     Expense[]
+  bills        Bill[]
+  payments     Payment[]
 
   @@map("rooms")
 }
@@ -71,13 +74,15 @@ model Period {
 
 model Payment {
   id          String    @id @default(uuid())
-  periodId    String    @map("period_id")
+  periodId    String?   @map("period_id")
+  roomId      String?   @map("room_id")
   lineUid     String    @map("line_uid")
   slipUrl     String?   @map("slip_url")
   status      String    @default("PENDING") // "AWAITING_SLIP", "PENDING", "APPROVED", "REJECTED"
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  period      Period    @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  period      Period?   @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  room        Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [lineUid], references: [lineUid], onDelete: Restrict)
 
   @@map("payments")
@@ -93,4 +98,23 @@ model Expense {
   room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@map("expenses")
+}
+
+model Bill {
+  id        String   @id @default(uuid())
+  month     Int
+  year      Int
+  dueDate   DateTime @map("due_date")
+  amount    Float
+  status    String   @default("UNPAID")
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId, month, year])
+  @@map("bills")
 }
