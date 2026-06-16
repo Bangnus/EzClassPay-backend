@@ -21,6 +21,19 @@ export async function getAll(req, res, next) {
   }
 }
 
+export async function getMyRooms(req, res, next) {
+  try {
+    const { lineUid } = req.query;
+    if (!lineUid) {
+      return error(res, "lineUid is required", STATUS_CODE.BAD_REQUEST);
+    }
+    const rooms = await roomService.getMyRooms(lineUid);
+    return success(res, rooms);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getById(req, res, next) {
   try {
     const room = await roomService.getRoomById(req.params.id);

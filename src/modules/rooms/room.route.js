@@ -4,6 +4,7 @@ import { authenticate } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
+router.get("/my-rooms", roomController.getMyRooms);
 router.get("/", roomController.getAll);
 router.get("/:id", roomController.getById);
 router.post("/", roomController.create);

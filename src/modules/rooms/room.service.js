@@ -12,6 +12,21 @@ export async function getAllRooms() {
   return roomRepo.findAll();
 }
 
+export async function getMyRooms(lineUid) {
+  const user = await roomRepo.findByUserLineUid(lineUid);
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const owned = user.ownedRooms || [];
+  const joined = (user.joinedRooms || []).map(jr => jr.room);
+  const all = [...owned, ...joined];
+  const unique = all.filter((r, i, arr) => arr.findIndex(x => x.id === r.id) === i);
+  return unique;
+}
+
 export async function getRoomById(id) {
   const room = await roomRepo.findById(id);
   if (!room) {

@@ -1,6 +1,6 @@
 // Rich Menu IDs — อัปเดตหลังจากรัน scripts/setup-richmenu.js
 export const RICH_MENU = {
-  SELECT: 'richmenu-32922a34bf37b2dfe19fb007661923fe',
-  MEMBER: 'richmenu-4419ef6721f9a211bbfe0d78e5e66dff',
-  MANAGER: 'richmenu-80282fbd21f851e71b1c1fd0b8f2c3dd',
+  SELECT: 'richmenu-1ce87280eca9fdcd12d6a587012da089',
+  MEMBER: 'richmenu-f54d9d0198cad1de3caea9542b8de75e',
+  MANAGER: 'richmenu-7fe89c675a8126f2b0c61552795edc43',
 };

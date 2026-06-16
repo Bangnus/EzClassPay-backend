@@ -3,10 +3,7 @@ import { handleShowRooms } from "./richmenu.handler.js";
 import {
   NO_PERIODS, GREETING, ROOM_NOT_SETUP, NOT_REGISTERED, NO_MEMBERSHIP,
   roomSummary, allRoomsSummary, MANUAL, UNKNOWN_COMMAND,
-  LABEL_PAYMENT_AMOUNT, LABEL_STATUS,
-  STATUS_NOT_PAID, STATUS_PAID, STATUS_PENDING, STATUS_AWAITING_SLIP,
-  BTN_CREATE_ROOM, BTN_PAY_CHECK, BTN_SUMMARY,
-  BTN_PAY_PERIOD, ALT_PERIOD_LIST, displayPayingPeriod
+  BTN_CREATE_ROOM, BTN_PAY_CHECK, BTN_SUMMARY
 } from "../../../constants/messages.js";
 
 export async function handleShowPeriods(event, lineClient) {
@@ -15,155 +12,54 @@ export async function handleShowPeriods(event, lineClient) {
 
   let room;
   if (groupId) {
-    room = await prisma.room.findUnique({
-      where: { lineGroupId: groupId },
-      include: { periods: { orderBy: { createdAt: 'asc' } } }
-    });
+    room = await prisma.room.findUnique({ where: { lineGroupId: groupId } });
   } else {
     const user = await prisma.user.findUnique({ where: { lineUid: userId } });
     if (!user) return;
 
     const membership = await prisma.roomMember.findFirst({
       where: { userId: user.id },
-      include: { room: { include: { periods: { orderBy: { createdAt: 'asc' } } } } }
+      include: { room: true }
     });
     room = membership?.room;
   }
 
-  if (!room || room.periods.length === 0) {
+  if (!room) {
     return lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [{ type: 'text', text: NO_PERIODS }]
     });
   }
 
-  const payments = await prisma.payment.findMany({
-    where: {
-      lineUid: userId,
-      periodId: { in: room.periods.map(p => p.id) }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-
-  const paymentMap = {};
-  for (const payment of payments) {
-    if (!paymentMap[payment.periodId]) {
-      paymentMap[payment.periodId] = payment;
-    }
-  }
-
-  const MAX_BUBBLES = 10;
-  const bubbles = room.periods.slice(0, MAX_BUBBLES).map(period => {
-    const payment = paymentMap[period.id];
-    let statusText, statusColor, badgeColor, showPayButton;
-
-    if (!payment || payment.status === 'REJECTED') {
-      statusText = STATUS_NOT_PAID;
-      statusColor = '#ff334b';
-      badgeColor = '#ff334b';
-      showPayButton = true;
-    } else if (payment.status === 'APPROVED') {
-      statusText = STATUS_PAID;
-      statusColor = '#00c300';
-      badgeColor = '#00c300';
-      showPayButton = false;
-    } else if (payment.status === 'PENDING') {
-      statusText = STATUS_PENDING;
-      statusColor = '#ffb81c';
-      badgeColor = '#ffb81c';
-      showPayButton = false;
-    } else {
-      statusText = STATUS_AWAITING_SLIP;
-      statusColor = '#ffb81c';
-      badgeColor = '#ffb81c';
-      showPayButton = false;
-    }
-
-    const bubble = {
-      type: 'bubble',
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'md',
-        contents: [
-          {
-            type: 'box',
-            layout: 'horizontal',
-            spacing: 'md',
-            contents: [
-              {
-                type: 'box',
-                layout: 'vertical',
-                width: '12px',
-                height: '12px',
-                backgroundColor: badgeColor,
-                cornerRadius: '2px',
-                alignSelf: 'center',
-                flex: 0
-              },
-              {
-                type: 'text',
-                text: period.name,
-                weight: 'bold',
-                size: 'lg',
-                wrap: true,
-                flex: 1
-              }
-            ]
-          },
-          {
-            type: 'box',
-            layout: 'horizontal',
-            spacing: 'sm',
-            contents: [
-              { type: 'text', text: LABEL_PAYMENT_AMOUNT, color: '#8c8c8c', size: 'sm', flex: 1 },
-              { type: 'text', text: `฿${period.amount}`, color: '#333333', size: 'sm', flex: 1, align: 'end', weight: 'bold' }
-            ]
-          },
-          {
-            type: 'box',
-            layout: 'horizontal',
-            spacing: 'sm',
-            contents: [
-              { type: 'text', text: LABEL_STATUS, color: '#8c8c8c', size: 'sm', flex: 1 },
-              { type: 'text', text: statusText, color: statusColor, size: 'sm', flex: 1, align: 'end', weight: 'bold' }
-            ]
-          }
-        ]
-      }
-    };
-
-    if (showPayButton) {
-      bubble.footer = {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'sm',
-        contents: [
-          {
-            type: 'button',
-            style: 'primary',
-            color: '#ff334b',
-            height: 'sm',
-            action: {
-              type: 'postback',
-              label: BTN_PAY_PERIOD,
-              data: `action=pay&period_id=${period.id}`,
-              displayText: displayPayingPeriod(period.name)
-            }
-          }
-        ]
-      };
-    }
-
-    return bubble;
-  });
+  const liffUrl = `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL}?roomId=${room.id}`;
 
   return lineClient.replyMessage({
     replyToken: event.replyToken,
     messages: [{
       type: 'flex',
-      altText: ALT_PERIOD_LIST,
-      contents: { type: 'carousel', contents: bubbles }
+      altText: `จ่ายเงินค่าห้อง ${room.name}`,
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [
+            { type: 'text', text: room.name, weight: 'bold', size: 'lg', wrap: true },
+            { type: 'text', text: `กดปุ่มด้านล่างเพื่อจ่ายเงินค่าห้อง ${room.name}`, wrap: true, color: '#8c8c8c', size: 'sm' }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'button',
+            style: 'primary',
+            color: '#ff334b',
+            action: { type: 'uri', label: 'จ่ายเงิน', uri: liffUrl }
+          }]
+        }
+      }
     }]
   });
 }

@@ -20,3 +20,17 @@ export function updateById(id, data) {
 export function deleteById(id) {
   return prisma.room.delete({ where: { id } });
 }
+
+export function findByUserLineUid(lineUid) {
+  return prisma.user.findUnique({
+    where: { lineUid },
+    include: {
+      ownedRooms: { select: roomSelect },
+      joinedRooms: {
+        include: {
+          room: { select: roomSelect }
+        }
+      }
+    }
+  });
+}

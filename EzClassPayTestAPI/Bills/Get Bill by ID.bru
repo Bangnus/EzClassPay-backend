@@ -4,10 +4,6 @@ meta {
   seq: 5
 }
 
-docs {
-  ดึง bill ทีละรายการตาม id
-}
-
 get {
   url: {{base_url}}/bills/{{bill_id}}
   body: none
@@ -16,10 +12,14 @@ get {
 
 vars:pre-request {
   base_url: http://localhost:3000/api
-  bill_id: 48d5dab3-242b-46e8-a7a2-f138f87bdc6d
+  bill_id: c17d572d-7a36-4a6f-978b-d23e10fa5c1b
 }
 
 settings {
   encodeUrl: true
   timeout: 0
+}
+
+docs {
+  ดึง bill ทีละรายการตาม id
 }
