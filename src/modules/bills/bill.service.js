@@ -63,44 +63,43 @@ export async function generateMonthlyBills(month, year) {
 
     const created = await billRepo.createBills(billData);
 
-    if (created.count > 0) {
-      const monthName = getThaiMonthName(month);
-      const dateStr = `${dueDate.getDate()}/${dueDate.getMonth() + 1}/${dueDate.getFullYear() + 543}`;
+    const monthName = getThaiMonthName(month);
+    const dateStr = `${dueDate.getDate()}/${dueDate.getMonth() + 1}/${dueDate.getFullYear() + 543}`;
 
-      for (const member of room.members) {
-        try {
-          await sendBillNotification(member.user, {
-            roomId: room.id,
-            roomName: room.name,
-            amount,
-            month: monthName,
-            dueDate: dateStr,
-            promptpayNo: room.promptpayNo,
-          });
-        } catch (e) {
-          console.error(
-            `Failed to notify user ${member.user.lineUid}: ${e.message}`
-          );
-        }
+    for (const member of room.members) {
+      try {
+        console.log(`[Bills] Sending bill notification to user ${member.user.lineUid}`);
+        await sendBillNotification(member.user, {
+          roomId: room.id,
+          roomName: room.name,
+          amount,
+          month: monthName,
+          dueDate: dateStr,
+          promptpayNo: room.promptpayNo,
+        });
+      } catch (e) {
+        console.error(
+          `Failed to notify user ${member.user.lineUid}: ${e.message}`
+        );
       }
-
-      if (room.lineGroupId) {
-        try {
-          await sendGroupBillNotification(room, {
-            amount,
-            month: monthName,
-            dueDate: dateStr,
-            memberCount: room.members.length,
-          });
-        } catch (e) {
-          console.error(
-            `Failed to notify group ${room.lineGroupId}: ${e.message}`
-          );
-        }
-      }
-
-      results.push({ roomId: room.id, roomName: room.name, count: created.count });
     }
+
+    if (room.lineGroupId) {
+      try {
+        await sendGroupBillNotification(room, {
+          amount,
+          month: monthName,
+          dueDate: dateStr,
+          memberCount: room.members.length,
+        });
+      } catch (e) {
+        console.error(
+          `Failed to notify group ${room.lineGroupId}: ${e.message}`
+        );
+      }
+    }
+
+    results.push({ roomId: room.id, roomName: room.name, count: created.count });
   }
 
   return results;
@@ -156,6 +155,15 @@ async function sendBillNotification(user, bill) {
         layout: "vertical",
         spacing: "md",
         contents: [
+          {
+            type: "text",
+            text: bill.roomName,
+            weight: "bold",
+            size: "xxl",
+            color: "#111827",
+            wrap: true,
+            align: "center",
+          },
           { type: "separator" },
           {
             type: "box",
@@ -279,10 +287,16 @@ async function sendBillNotification(user, bill) {
     },
   };
 
-  await lineClient.pushMessage({
-    to: user.lineUid,
-    messages: [flexMessage],
-  });
+  console.log(`[Bills] pushMessage to user ${user.lineUid}`);
+  try {
+    await lineClient.pushMessage({
+      to: user.lineUid,
+      messages: [flexMessage],
+    });
+    console.log(`[Bills] pushMessage success to user ${user.lineUid}`);
+  } catch (e) {
+    console.error(`[Bills] pushMessage FAILED to user ${user.lineUid}: ${e.message}`, e.statusCode, e.originalError?.response?.data || "");
+  }
 }
 
 async function sendGroupBillNotification(room, bill) {

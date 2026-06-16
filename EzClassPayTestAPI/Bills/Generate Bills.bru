@@ -1,0 +1,34 @@
+meta {
+  name: Generate Bills
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/bills/generate
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "roomId": "86656db0-dbb4-4aa4-906f-4ca0e7552245",
+    "month": 6,
+    "year": 2026,
+    "amount": 100,
+    "dueDate": "2026-07-01"
+  }
+}
+
+vars:pre-request {
+  base_url: http://localhost:3000/api
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+   สร้าง bill รายเดือนให้สมาชิกทุกคนในห้อง + ส่ง LINE notification
+}

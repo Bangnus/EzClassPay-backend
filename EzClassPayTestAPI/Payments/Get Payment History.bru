@@ -1,0 +1,20 @@
+meta {
+  name: Get Payment History
+  type: http
+  seq: 5
+}
+
+docs {
+  ดึงประวัติการชำระเงินทั้งหมดของห้อง (APPROVED/REJECTED)
+}
+
+get {
+  url: {{base_url}}/payments/room/{{room_id}}/history
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

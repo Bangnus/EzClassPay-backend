@@ -1,0 +1,20 @@
+meta {
+  name: Get Pending Payments
+  type: http
+  seq: 2
+}
+
+docs {
+  ดึงสลิปรอตรวจสอบของห้อง → ใช้ในหน้า LIFF approve-payments
+}
+
+get {
+  url: {{base_url}}/payments/room/{{room_id}}/pending
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

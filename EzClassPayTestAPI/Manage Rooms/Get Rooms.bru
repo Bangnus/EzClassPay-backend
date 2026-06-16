@@ -1,10 +1,14 @@
 meta {
-  name: Create Room
+  name: Get Rooms
   type: http
-  seq: 1
+  seq: 2
 }
 
-post {
+docs {
+  ดึงรายชื่อห้องทั้งหมดที่ผู้ใช้ line_uid นี้เป็นสมาชิก
+}
+
+get {
   url: {{base_url}}/rooms
   body: json
   auth: inherit

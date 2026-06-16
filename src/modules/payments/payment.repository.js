@@ -1,5 +1,9 @@
 import prisma from "../../config/database.js";
 
+export function findRoomById(roomId) {
+  return prisma.room.findUnique({ where: { id: roomId }, select: { id: true, name: true } });
+}
+
 export function findPendingByLineUid(lineUid) {
   return prisma.payment.findFirst({
     where: { lineUid, status: "AWAITING_SLIP" },

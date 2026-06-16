@@ -8,6 +8,75 @@ export async function initiatePayment({ lineUid, roomId, amount }) {
     roomId,
     status: "AWAITING_SLIP",
   });
+
+  try {
+    const room = await paymentRepo.findRoomById(roomId);
+    const userProfile = await lineClient.getProfile(lineUid).catch(() => null);
+
+    await lineClient.pushMessage({
+      to: lineUid,
+      messages: [
+        {
+          type: "flex",
+          altText: "💸 เตรียมส่งสลิป",
+          contents: {
+            type: "bubble",
+            header: {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text: "💸 พร้อมส่งสลิปแล้ว",
+                  weight: "bold",
+                  size: "xl",
+                  color: "#ea580c",
+                  align: "center",
+                },
+              ],
+            },
+            body: {
+              type: "box",
+              layout: "vertical",
+              spacing: "md",
+              contents: [
+                {
+                  type: "text",
+                  text: room?.name || "ห้อง",
+                  weight: "bold",
+                  size: "xxl",
+                  color: "#111827",
+                  align: "center",
+                  wrap: true,
+                },
+                { type: "separator" },
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    { type: "text", text: "สถานะ", weight: "bold", size: "sm", flex: 1, color: "#6b7280" },
+                    { type: "text", text: "⏳ รอสลิป", size: "sm", flex: 3, color: "#ea580c", weight: "bold" },
+                  ],
+                },
+                { type: "separator" },
+                {
+                  type: "text",
+                  text: "📸 กรุณาส่งรูปสลิปโอนเงินเข้ามาในแชทนี้ เพื่อให้ผู้ดูแลตรวจสอบครับ 🙏",
+                  size: "xs",
+                  color: "#9ca3af",
+                  wrap: true,
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+  } catch (e) {
+    console.error("Failed to send initiate notification:", e.message);
+  }
+
   return payment;
 }
 

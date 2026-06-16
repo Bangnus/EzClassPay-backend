@@ -1,10 +1,14 @@
 meta {
-  name: Get Rooms
+  name: Create Room
   type: http
-  seq: 2
+  seq: 1
 }
 
-get {
+docs {
+  สร้างห้องใหม่ → ระบุชื่อ, รูปแบบเก็บ (MONTHLY/TARGET), จำนวนเงิน, promptpay
+}
+
+post {
   url: {{base_url}}/rooms
   body: json
   auth: inherit

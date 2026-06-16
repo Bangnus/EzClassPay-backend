@@ -1,0 +1,25 @@
+meta {
+  name: Get Bills by Room
+  type: http
+  seq: 1
+}
+
+docs {
+  ดึงรายการ bill ของห้อง → filter ด้วย ?limit=, ?month=, ?year=
+}
+
+get {
+  url: {{base_url}}/bills/room/{{room_id}}?limit=5
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  base_url: http://localhost:3000/api
+  room_id: 86656db0-dbb4-4aa4-906f-4ca0e7552245
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

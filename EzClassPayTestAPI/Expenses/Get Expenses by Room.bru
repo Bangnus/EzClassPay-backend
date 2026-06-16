@@ -1,0 +1,20 @@
+meta {
+  name: Get Expenses by Room
+  type: http
+  seq: 2
+}
+
+docs {
+  ดึงประวัติรายจ่ายของห้อง
+}
+
+get {
+  url: {{base_url}}/expenses/room/{{room_id}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

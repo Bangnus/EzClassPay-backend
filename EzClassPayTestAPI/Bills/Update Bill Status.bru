@@ -1,0 +1,26 @@
+meta {
+  name: Update Bill Status
+  type: http
+  seq: 4
+}
+
+docs {
+  เปลี่ยนสถานะ bill (PAID/UNPAID/OVERDUE) — ปกติ approve payment จะเปลี่ยนให้อัตโนมัติ
+}
+
+patch {
+  url: {{base_url}}/bills/{{bill_id}}/status
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "PAID"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

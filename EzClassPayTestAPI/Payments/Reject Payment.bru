@@ -1,0 +1,20 @@
+meta {
+  name: Reject Payment
+  type: http
+  seq: 4
+}
+
+docs {
+  ปฏิเสธสลิป → เปลี่ยน payment → REJECTED, ส่ง LINE แจ้ง user
+}
+
+patch {
+  url: {{base_url}}/payments/{{payment_id}}/reject
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

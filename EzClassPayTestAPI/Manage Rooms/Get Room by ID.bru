@@ -1,0 +1,20 @@
+meta {
+  name: Get Room by ID
+  type: http
+  seq: 3
+}
+
+docs {
+  ดึงข้อมูลห้องเดี่ยว → ใช้ใน LIFF pay-bill / approve-payments
+}
+
+get {
+  url: {{base_url}}/rooms/{{room_id}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

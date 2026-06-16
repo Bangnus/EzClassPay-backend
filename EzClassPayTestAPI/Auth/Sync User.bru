@@ -1,0 +1,40 @@
+meta {
+  name: Sync User
+  type: http
+  seq: 1
+}
+
+docs {
+  LINE Login → อัปเดต/สร้างผู้ใช้ในระบบ + เปลี่ยน Rich Menu ตาม action
+}
+
+post {
+  url: {{base_url}}/auth/sync
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "line_uid": "U1feb6011ab23f0464e1d6d9578c4227e",
+    "name": "Anxs⚡️",
+    "profile_url": "https://profile.line.me/abc",
+    "action": "pay_bill"
+  }
+}
+
+vars:pre-request {
+  base_url: http://localhost:3000/api
+}
+
+script:post-response {
+  const data = res.getBody();
+  if (data.success) {
+    bru.setVar("user_id", data.data.id);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
