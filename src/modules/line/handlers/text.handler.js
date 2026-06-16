@@ -76,8 +76,8 @@ export async function handleText(event, lineClient) {
   if (text.match(/@[Ee][Zz][Cc]lass[Pp]ay/)) {
     const groupId = event.source.groupId;
     const liffUrl = groupId
-      ? `https://liff.line.me/${process.env.LIFF_ID}?groupId=${groupId}`
-      : `https://liff.line.me/${process.env.LIFF_ID}`;
+      ? `https://liff.line.me/${process.env.LIFF_ID_CREATE_ROOM}?groupId=${groupId}`
+      : `https://liff.line.me/${process.env.LIFF_ID_CREATE_ROOM}`;
     const botLineUrl = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID || '@ไอดีบอท'}`;
 
     const quickReplyItems = [];
@@ -192,10 +192,18 @@ export async function handleText(event, lineClient) {
 
   // ===== 3. คำสั่งอื่นๆ (ใช้ได้ทั้ง group และ 1-on-1) =====
   if (text === 'แสดงห้องทั้งหมด') {
+    console.log('[RICH_MENU_TEXT] แสดงห้องทั้งหมด', {
+      userId: event.source.userId,
+      groupId: event.source.groupId,
+    });
     return handleShowRooms(event, lineClient);
   }
 
   if (text === 'คู่มือการใช้งาน') {
+    console.log('[RICH_MENU_TEXT] คู่มือการใช้งาน', {
+      userId: event.source.userId,
+      groupId: event.source.groupId,
+    });
     return lineClient.replyMessage({
       replyToken,
       messages: [{ type: 'text', text: MANUAL }]

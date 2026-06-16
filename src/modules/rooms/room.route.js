@@ -6,6 +6,7 @@ const router = Router();
 
 router.get("/my-rooms", roomController.getMyRooms);
 router.get("/", roomController.getAll);
+router.get("/by-group/:groupId", roomController.getByGroupId);
 router.get("/:id", roomController.getById);
 router.post("/", roomController.create);
 router.patch("/:id", authenticate, roomController.update);

@@ -34,6 +34,15 @@ export async function getMyRooms(req, res, next) {
   }
 }
 
+export async function getByGroupId(req, res, next) {
+  try {
+    const room = await roomService.getRoomByGroupId(req.params.groupId);
+    return success(res, room);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getById(req, res, next) {
   try {
     const room = await roomService.getRoomById(req.params.id);

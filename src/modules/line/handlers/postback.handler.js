@@ -7,6 +7,12 @@ export async function handlePostback(event, lineClient) {
   const data = new URLSearchParams(event.postback.data);
   const action = data.get('action');
 
+  console.log(`[RICH_MENU_POSTBACK] action=${action}`, {
+    userId: event.source.userId,
+    groupId: event.source.groupId,
+    data: event.postback.data,
+  });
+
   if (action === 'switch_room') {
     return handleSwitchRoom(event, lineClient);
   }

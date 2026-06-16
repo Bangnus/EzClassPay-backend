@@ -32,7 +32,7 @@ export async function handleBotJoin(event, lineClient) {
               action: {
                 type: "uri",
                 label: "➕ สร้างห้อง",
-                uri: `https://liff.line.me/${process.env.LIFF_ID}?groupId=${groupId}`,
+                uri: `https://liff.line.me/${process.env.LIFF_ID_CREATE_ROOM}?groupId=${groupId}`,
               },
             },
           ],

@@ -27,6 +27,16 @@ export async function getMyRooms(lineUid) {
   return unique;
 }
 
+export async function getRoomByGroupId(groupId) {
+  const room = await roomRepo.findByGroupId(groupId);
+  if (!room) {
+    const error = new Error("Room not found for this group");
+    error.statusCode = 404;
+    throw error;
+  }
+  return room;
+}
+
 export async function getRoomById(id) {
   const room = await roomRepo.findById(id);
   if (!room) {

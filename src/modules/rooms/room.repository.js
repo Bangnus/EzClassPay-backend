@@ -21,6 +21,10 @@ export function deleteById(id) {
   return prisma.room.delete({ where: { id } });
 }
 
+export function findByGroupId(groupId) {
+  return prisma.room.findUnique({ where: { lineGroupId: groupId }, select: roomSelect });
+}
+
 export function findByUserLineUid(lineUid) {
   return prisma.user.findUnique({
     where: { lineUid },

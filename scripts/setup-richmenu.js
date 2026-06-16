@@ -27,7 +27,7 @@ async function setupRichMenus() {
         },
         {
           bounds: { x: 833, y: 0, width: 833, height: 1686 },
-          action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID_HISTORY}` }
+          action: { type: "uri", uri: `https://liff.line.me/2010387800-5xribNEp` }
         },
         {
           bounds: { x: 1666, y: 0, width: 834, height: 1686 },
@@ -59,7 +59,7 @@ async function setupRichMenus() {
         },
         {
           bounds: { x: 0, y: 843, width: 1250, height: 843 },
-          action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID_MEMBER_HISTORY}` }
+          action: { type: "uri", uri: `https://liff.line.me/2010387800-EsBWaqr6` }
         },
         {
           bounds: { x: 1250, y: 843, width: 1250, height: 843 },
@@ -91,11 +91,11 @@ async function setupRichMenus() {
         },
         {
           bounds: { x: 1250, y: 0, width: 1250, height: 843 },
-          action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID_VERIFY_SLIP}` }
+          action: { type: "uri", uri: `https://liff.line.me/2010387800-3PMFe62G` }
         },
         {
           bounds: { x: 0, y: 843, width: 1250, height: 843 },
-          action: { type: "uri", uri: `https://liff.line.me/${process.env.LIFF_ID_DASHBOARD}` }
+          action: { type: "uri", uri: `https://liff.line.me/2010387800-9tdBpjUZ` }
         },
         {
           bounds: { x: 1250, y: 843, width: 1250, height: 843 },
