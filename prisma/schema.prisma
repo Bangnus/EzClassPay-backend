@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  lineUid     String   @unique @map("line_uid")
-  displayName String   @map("display_name")
-  pictureUrl  String?  @map("picture_url")
-  role        String   @default("MEMBER")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  lineUid      String   @unique @map("line_uid")
+  displayName  String   @map("display_name")
+  pictureUrl   String?  @map("picture_url")
+  role         String   @default("MEMBER")
+  activeRoomId String?  @map("active_room_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   ownedRooms     Room[]        @relation("ManagerRooms")
   joinedRooms    RoomMember[]

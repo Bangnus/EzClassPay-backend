@@ -1,7 +1,7 @@
 import prisma from "../../../config/database.js";
 import { RICH_MENU } from "../../../constants/richmenu.js";
 import {
-  ROOM_SWITCH_BACK, ROOM_NOT_FOUND, NO_ROOMS,
+  ROOM_SWITCH_BACK, ROOM_NOT_FOUND, NO_ROOMS, ROOM_LEFT,
   welcomeManager, welcomeMember,
   LABEL_PROMPTPAY, LABEL_ROLE_MANAGER, LABEL_ROLE_MEMBER,
   BTN_SELECT_ROOM, ALT_ROOM_LIST, displaySelectingRoom
@@ -9,13 +9,23 @@ import {
 
 export async function handleSwitchRoom(event, lineClient) {
   const userId = event.source.userId;
+  const user = await prisma.user.findUnique({ where: { lineUid: userId } });
+  if (!user) return;
+
+  if (user.activeRoomId) {
+    await prisma.user.update({
+      where: { lineUid: userId },
+      data: { activeRoomId: null }
+    });
+  }
+
   await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.SELECT);
 
   return lineClient.replyMessage({
     replyToken: event.replyToken,
     messages: [{
       type: 'text',
-      text: ROOM_SWITCH_BACK
+      text: user.activeRoomId ? ROOM_LEFT : ROOM_SWITCH_BACK
     }]
   });
 }
@@ -39,6 +49,11 @@ export async function handleSelectRoom(event, lineClient) {
   const user = await prisma.user.findUnique({ where: { lineUid: userId } });
   if (!user) return;
 
+  await prisma.user.update({
+    where: { lineUid: userId },
+    data: { activeRoomId: roomId }
+  });
+
   const isManager = room.managerId === user.id;
 
   if (isManager) {
@@ -58,6 +73,25 @@ export async function handleSelectRoom(event, lineClient) {
     messages: [{
       type: 'text',
       text: welcomeMember(room.name)
+    }]
+  });
+}
+
+export async function handleLeaveRoom(event, lineClient) {
+  const userId = event.source.userId;
+
+  await prisma.user.update({
+    where: { lineUid: userId },
+    data: { activeRoomId: null }
+  });
+
+  await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.SELECT);
+
+  return lineClient.replyMessage({
+    replyToken: event.replyToken,
+    messages: [{
+      type: 'text',
+      text: ROOM_LEFT
     }]
   });
 }

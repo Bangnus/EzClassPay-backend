@@ -1,5 +1,5 @@
 import prisma from "../../../config/database.js";
-import { handleSwitchRoom, handleSelectRoom } from "./richmenu.handler.js";
+import { handleSwitchRoom, handleSelectRoom, handleLeaveRoom } from "./richmenu.handler.js";
 import { handleShowPeriods } from "./text.handler.js";
 import { PERIOD_NOT_FOUND, paymentDetail, SEND_SLIP_PROMPT, NO_MEMBERSHIP } from "../../../constants/messages.js";
 
@@ -19,6 +19,10 @@ export async function handlePostback(event, lineClient) {
 
   if (action === 'select_room') {
     return handleSelectRoom(event, lineClient);
+  }
+
+  if (action === 'leave_room') {
+    return handleLeaveRoom(event, lineClient);
   }
 
   if (action === 'pay') {
