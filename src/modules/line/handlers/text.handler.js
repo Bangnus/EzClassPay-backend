@@ -40,23 +40,64 @@ export async function handleShowPeriods(event, lineClient) {
       altText: `จ่ายเงินค่าห้อง ${room.name}`,
       contents: {
         type: 'bubble',
+        size: 'mega',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#00c6ae',
+          paddingTop: '16px',
+          paddingBottom: '16px',
+          contents: [
+            {
+              type: 'text',
+              text: '💸 ชำระเงินค่าห้อง',
+              weight: 'bold',
+              size: 'lg',
+              color: '#ffffff',
+              align: 'center'
+            }
+          ]
+        },
         body: {
           type: 'box',
           layout: 'vertical',
-          spacing: 'md',
+          paddingAll: 'xl',
           contents: [
-            { type: 'text', text: room.name, weight: 'bold', size: 'lg', wrap: true },
-            { type: 'text', text: `กดปุ่มด้านล่างเพื่อจ่ายเงินค่าห้อง ${room.name}`, wrap: true, color: '#8c8c8c', size: 'sm' }
+            {
+              type: 'text',
+              text: room.name,
+              weight: 'bold',
+              size: 'xl',
+              color: '#16a085',
+              wrap: true,
+              align: 'center'
+            },
+            {
+              type: 'separator',
+              margin: 'xl',
+              color: '#e5e7eb'
+            },
+            {
+              type: 'text',
+              text: 'กรุณากดปุ่มด้านล่างเพื่อเข้าสู่ระบบชำระเงินและส่งสลิปครับ 🙏',
+              wrap: true,
+              color: '#6b7280',
+              size: 'sm',
+              align: 'center',
+              margin: 'lg'
+            }
           ]
         },
         footer: {
           type: 'box',
           layout: 'vertical',
+          paddingAll: 'md',
           contents: [{
             type: 'button',
             style: 'primary',
-            color: '#ff334b',
-            action: { type: 'uri', label: 'จ่ายเงิน', uri: liffUrl }
+            color: '#00c6ae',
+            height: 'sm',
+            action: { type: 'uri', label: '💳 ชำระเงินตอนนี้', uri: liffUrl }
           }]
         }
       }

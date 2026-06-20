@@ -62,23 +62,64 @@ export async function handlePostback(event, lineClient) {
           altText: `จ่ายเงินค่าห้อง ${room.name}`,
           contents: {
             type: 'bubble',
+            size: 'mega',
+            header: {
+              type: 'box',
+              layout: 'vertical',
+              backgroundColor: '#00c6ae',
+              paddingTop: '16px',
+              paddingBottom: '16px',
+              contents: [
+                {
+                  type: 'text',
+                  text: '💸 ชำระเงินค่าห้อง',
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#ffffff',
+                  align: 'center'
+                }
+              ]
+            },
             body: {
               type: 'box',
               layout: 'vertical',
-              spacing: 'md',
+              paddingAll: 'xl',
               contents: [
-                { type: 'text', text: room.name, weight: 'bold', size: 'lg', wrap: true },
-                { type: 'text', text: `กดปุ่มด้านล่างเพื่อจ่ายเงินค่าห้อง ${room.name}`, wrap: true, color: '#8c8c8c', size: 'sm' }
+                {
+                  type: 'text',
+                  text: room.name,
+                  weight: 'bold',
+                  size: 'xl',
+                  color: '#16a085',
+                  wrap: true,
+                  align: 'center'
+                },
+                {
+                  type: 'separator',
+                  margin: 'xl',
+                  color: '#e5e7eb'
+                },
+                {
+                  type: 'text',
+                  text: 'กรุณากดปุ่มด้านล่างเพื่อเข้าสู่ระบบชำระเงินและส่งสลิปครับ 🙏',
+                  wrap: true,
+                  color: '#6b7280',
+                  size: 'sm',
+                  align: 'center',
+                  margin: 'lg'
+                }
               ]
             },
             footer: {
               type: 'box',
               layout: 'vertical',
+              paddingAll: 'md',
               contents: [{
                 type: 'button',
                 style: 'primary',
-                color: '#ff334b',
-                action: { type: 'uri', label: 'จ่ายเงิน', uri: liffUrl }
+                color: '#00c6ae',
+                height: 'sm',
+                action: { type: 'uri', label: '💳 ชำระเงินตอนนี้', uri: liffUrl }
               }]
             }
           }
@@ -119,17 +160,118 @@ export async function handlePostback(event, lineClient) {
       replyToken: event.replyToken,
       messages: [
         {
-          type: 'text',
-          text: paymentDetail(period.name, period.amount, promptpayNo)
-        },
-        {
-          type: 'image',
-          originalContentUrl: qrUrl,
-          previewImageUrl: qrUrl
-        },
-        {
-          type: 'text',
-          text: SEND_SLIP_PROMPT
+          type: 'flex',
+          altText: `คิวอาร์โค้ดชำระเงิน ${period.name}`,
+          contents: {
+            type: 'bubble',
+            size: 'mega',
+            header: {
+              type: 'box',
+              layout: 'vertical',
+              backgroundColor: '#16a085',
+              paddingTop: '16px',
+              paddingBottom: '16px',
+              contents: [
+                {
+                  type: 'text',
+                  text: '📲 สแกน QR เพื่อชำระเงิน',
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#ffffff',
+                  align: 'center'
+                }
+              ]
+            },
+            hero: {
+              type: 'image',
+              url: qrUrl,
+              size: 'full',
+              aspectRatio: '1:1',
+              aspectMode: 'cover'
+            },
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              paddingAll: 'xl',
+              contents: [
+                {
+                  type: 'text',
+                  text: period.name,
+                  weight: 'bold',
+                  size: 'xl',
+                  color: '#16a085',
+                  wrap: true,
+                  align: 'center'
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  margin: 'lg',
+                  spacing: 'sm',
+                  contents: [
+                    {
+                      type: 'box',
+                      layout: 'horizontal',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: 'ยอดเงิน',
+                          color: '#6b7280',
+                          size: 'sm',
+                          flex: 0
+                        },
+                        {
+                          type: 'text',
+                          text: `฿${Number(period.amount).toLocaleString()}`,
+                          weight: 'bold',
+                          color: '#00c6ae',
+                          size: 'lg',
+                          align: 'end',
+                          flex: 1
+                        }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'horizontal',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: 'พร้อมเพย์',
+                          color: '#6b7280',
+                          size: 'sm',
+                          flex: 0
+                        },
+                        {
+                          type: 'text',
+                          text: promptpayNo,
+                          weight: 'bold',
+                          color: '#111827',
+                          size: 'md',
+                          align: 'end',
+                          flex: 1
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: 'separator',
+                  margin: 'xl',
+                  color: '#e5e7eb'
+                },
+                {
+                  type: 'text',
+                  text: SEND_SLIP_PROMPT,
+                  wrap: true,
+                  color: '#6b7280',
+                  size: 'xs',
+                  align: 'center',
+                  margin: 'lg'
+                }
+              ]
+            }
+          }
         }
       ]
     });
