@@ -2,6 +2,7 @@ import prisma from "../../../config/database.js";
 import { handleSwitchRoom, handleSelectRoom, handleLeaveRoom } from "./richmenu.handler.js";
 import { handleShowPeriods } from "./text.handler.js";
 import { PERIOD_NOT_FOUND, paymentDetail, SEND_SLIP_PROMPT, NO_MEMBERSHIP } from "../../../constants/messages.js";
+import { RICH_MENU } from "../../../constants/richmenu.js";
 
 export async function handlePostback(event, lineClient) {
   const data = new URLSearchParams(event.postback.data);
@@ -25,6 +26,193 @@ export async function handlePostback(event, lineClient) {
     return handleLeaveRoom(event, lineClient);
   }
 
+  if (action === 'group_pay_check') {
+    const groupId = data.get('group_id');
+    const userId = event.source.userId;
+
+    const room = await prisma.room.findUnique({
+      where: { lineGroupId: groupId }
+    });
+
+    if (!room) return;
+
+    const user = await prisma.user.findUnique({ where: { lineUid: userId } });
+    if (!user) return;
+
+    // 1. Link Rich Menu
+    await prisma.user.update({
+      where: { lineUid: userId },
+      data: { activeRoomId: room.id }
+    });
+
+    const isManager = room.managerId === user.id;
+    if (isManager) {
+      await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.MANAGER);
+    } else {
+      await lineClient.linkRichMenuIdToUser(userId, RICH_MENU.MEMBER);
+    }
+
+    // 2. Build Unpaid Summary
+    let unpaidTotal = 0;
+    if (room.collectionType === 'MONTHLY') {
+      const bills = await prisma.bill.findMany({
+        where: { roomId: room.id, userId: user.id, status: 'UNPAID' }
+      });
+      unpaidTotal = bills.reduce((sum, b) => sum + b.amount, 0);
+    } else {
+      const periods = await prisma.period.findMany({
+        where: { roomId: room.id },
+        include: {
+          payments: { where: { lineUid: userId } }
+        }
+      });
+      for (const p of periods) {
+        const approved = p.payments.some(pay => pay.status === 'APPROVED');
+        if (!approved) {
+          unpaidTotal += p.amount;
+        }
+      }
+    }
+
+    const summaryText = `ยอดค้างชำระของคุณในห้อง "${room.name}" คือ ฿${unpaidTotal.toLocaleString()}`;
+
+    // 3. Build Periods Carousel (same as action=pay)
+    const periods = await prisma.period.findMany({
+      where: { roomId: room.id },
+      include: {
+        payments: {
+          where: { lineUid: event.source.userId }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    const bubbles = periods.map(period => {
+      const payment = period.payments[0];
+      const isPaid = payment && payment.status === 'APPROVED';
+      const isPending = payment && payment.status === 'AWAITING_SLIP';
+      
+      let buttonStyle = 'primary';
+      let buttonColor = '#00c6ae';
+      let buttonLabel = '💳 เลือกชำระงวดนี้';
+      let payAction = { type: 'postback', label: buttonLabel, data: `action=pay&period_id=${period.id}` };
+
+      if (isPaid) {
+        buttonColor = '#16a34a'; // green
+        buttonLabel = '✅ ชำระแล้ว';
+        payAction = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' }; // dummy action
+      } else if (isPending) {
+        buttonColor = '#f59e0b'; // amber
+        buttonLabel = '⏳ รอตรวจสอบ';
+        payAction = { type: 'postback', label: buttonLabel, data: `action=pay&period_id=${period.id}` };
+      }
+
+      return {
+        type: 'bubble',
+        size: 'kilo',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#00c6ae',
+          paddingTop: '12px',
+          paddingBottom: '12px',
+          contents: [
+            {
+              type: 'text',
+              text: `💸 ชำระเงินค่าห้อง`,
+              weight: 'bold',
+              size: 'md',
+              color: '#ffffff',
+              align: 'center'
+            }
+          ]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          paddingAll: 'lg',
+          contents: [
+            {
+              type: 'text',
+              text: room.name,
+              weight: 'bold',
+              size: 'lg',
+              color: '#16a085',
+              wrap: true,
+              align: 'center'
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+              color: '#e5e7eb'
+            },
+            {
+              type: 'text',
+              text: period.name,
+              weight: 'bold',
+              size: 'md',
+              color: '#374151',
+              wrap: true,
+              align: 'center',
+              margin: 'md'
+            },
+            {
+              type: 'text',
+              text: `ยอดเงิน: ฿${Number(period.amount).toLocaleString()}`,
+              size: 'sm',
+              color: '#6b7280',
+              align: 'center',
+              margin: 'sm'
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          paddingAll: 'md',
+          contents: [{
+            type: 'button',
+            style: buttonStyle,
+            color: buttonColor,
+            height: 'sm',
+            action: payAction
+          }]
+        }
+      };
+    });
+
+    const messages = [];
+    
+    // Add Summary Text Message
+    messages.push({
+      type: 'text',
+      text: summaryText
+    });
+
+    // Add Periods Carousel (or a text message if no periods)
+    if (periods.length === 0) {
+      messages.push({
+        type: 'text',
+        text: "ยังไม่มีงวดชำระเงินในห้องนี้ครับ"
+      });
+    } else {
+      messages.push({
+        type: 'flex',
+        altText: `เลือกงวดชำระเงินค่าห้อง ${room.name}`,
+        contents: {
+          type: 'carousel',
+          contents: bubbles
+        }
+      });
+    }
+
+    return lineClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: messages
+    });
+  }
+
   if (action === 'pay') {
     const periodId = data.get('period_id');
 
@@ -39,11 +227,16 @@ export async function handlePostback(event, lineClient) {
       if (groupId) {
         room = await prisma.room.findUnique({ where: { lineGroupId: groupId } });
       } else {
-        const membership = await prisma.roomMember.findFirst({
-          where: { userId: user.id },
-          include: { room: true }
-        });
-        room = membership?.room;
+        if (user.activeRoomId) {
+          room = await prisma.room.findUnique({ where: { id: user.activeRoomId } });
+        }
+        if (!room) {
+          const membership = await prisma.roomMember.findFirst({
+            where: { userId: user.id },
+            include: { room: true }
+          });
+          room = membership?.room;
+        }
       }
 
       if (!room) {
@@ -53,75 +246,126 @@ export async function handlePostback(event, lineClient) {
         });
       }
 
-      const liffUrl = `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL}?roomId=${room.id}`;
+      const periods = await prisma.period.findMany({
+        where: { roomId: room.id },
+        include: {
+          payments: {
+            where: { lineUid: event.source.userId }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10
+      });
+
+      if (periods.length === 0) {
+        return lineClient.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: "ยังไม่มีงวดชำระเงินในห้องนี้ครับ" }]
+        });
+      }
+
+      const bubbles = periods.map(period => {
+        const payment = period.payments[0];
+        const isPaid = payment && payment.status === 'APPROVED';
+        const isPending = payment && payment.status === 'AWAITING_SLIP';
+        
+        let buttonStyle = 'primary';
+        let buttonColor = '#00c6ae';
+        let buttonLabel = '💳 เลือกชำระงวดนี้';
+        let action = { type: 'postback', label: buttonLabel, data: `action=pay&period_id=${period.id}` };
+
+        if (isPaid) {
+          buttonColor = '#16a34a'; // green
+          buttonLabel = '✅ ชำระแล้ว';
+          action = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' }; // dummy action
+        } else if (isPending) {
+          buttonColor = '#f59e0b'; // amber
+          buttonLabel = '⏳ รอตรวจสอบ';
+          action = { type: 'postback', label: buttonLabel, data: `action=pay&period_id=${period.id}` };
+        }
+
+        return {
+          type: 'bubble',
+          size: 'kilo',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#00c6ae',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            contents: [
+              {
+                type: 'text',
+                text: `💸 ชำระเงินค่าห้อง`,
+                weight: 'bold',
+                size: 'md',
+                color: '#ffffff',
+                align: 'center'
+              }
+            ]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            paddingAll: 'lg',
+            contents: [
+              {
+                type: 'text',
+                text: room.name,
+                weight: 'bold',
+                size: 'lg',
+                color: '#16a085',
+                wrap: true,
+                align: 'center'
+              },
+              {
+                type: 'separator',
+                margin: 'md',
+                color: '#e5e7eb'
+              },
+              {
+                type: 'text',
+                text: period.name,
+                weight: 'bold',
+                size: 'md',
+                color: '#374151',
+                wrap: true,
+                align: 'center',
+                margin: 'md'
+              },
+              {
+                type: 'text',
+                text: `ยอดเงิน: ฿${Number(period.amount).toLocaleString()}`,
+                size: 'sm',
+                color: '#6b7280',
+                align: 'center',
+                margin: 'sm'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            paddingAll: 'md',
+            contents: [{
+              type: 'button',
+              style: buttonStyle,
+              color: buttonColor,
+              height: 'sm',
+              action: action
+            }]
+          }
+        };
+      });
 
       return lineClient.replyMessage({
         replyToken: event.replyToken,
         messages: [{
           type: 'flex',
-          altText: `จ่ายเงินค่าห้อง ${room.name}`,
+          altText: `เลือกงวดชำระเงินค่าห้อง ${room.name}`,
           contents: {
-            type: 'bubble',
-            size: 'mega',
-            header: {
-              type: 'box',
-              layout: 'vertical',
-              backgroundColor: '#00c6ae',
-              paddingTop: '16px',
-              paddingBottom: '16px',
-              contents: [
-                {
-                  type: 'text',
-                  text: '💸 ชำระเงินค่าห้อง',
-                  weight: 'bold',
-                  size: 'lg',
-                  color: '#ffffff',
-                  align: 'center'
-                }
-              ]
-            },
-            body: {
-              type: 'box',
-              layout: 'vertical',
-              paddingAll: 'xl',
-              contents: [
-                {
-                  type: 'text',
-                  text: room.name,
-                  weight: 'bold',
-                  size: 'xl',
-                  color: '#16a085',
-                  wrap: true,
-                  align: 'center'
-                },
-                {
-                  type: 'separator',
-                  margin: 'xl',
-                  color: '#e5e7eb'
-                },
-                {
-                  type: 'text',
-                  text: 'กรุณากดปุ่มด้านล่างเพื่อเข้าสู่ระบบชำระเงินและส่งสลิปครับ 🙏',
-                  wrap: true,
-                  color: '#6b7280',
-                  size: 'sm',
-                  align: 'center',
-                  margin: 'lg'
-                }
-              ]
-            },
-            footer: {
-              type: 'box',
-              layout: 'vertical',
-              paddingAll: 'md',
-              contents: [{
-                type: 'button',
-                style: 'primary',
-                color: '#00c6ae',
-                height: 'sm',
-                action: { type: 'uri', label: '💳 ชำระเงินตอนนี้', uri: liffUrl }
-              }]
-            }
+            type: 'carousel',
+            contents: bubbles
           }
         }]
       });
