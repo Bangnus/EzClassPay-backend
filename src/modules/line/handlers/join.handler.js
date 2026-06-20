@@ -3,6 +3,7 @@ import { GROUP_WELCOME } from "../../../constants/messages.js";
 
 export async function handleBotJoin(event, lineClient) {
   const groupId = event.source.groupId;
+  const botLineUrl = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID || '@ไอดีบอท'}`;
 
   const room = await prisma.room.findUnique({
     where: { lineGroupId: groupId },
@@ -14,7 +15,7 @@ export async function handleBotJoin(event, lineClient) {
       messages: [
         {
           type: "text",
-          text: `🙏 ขอบคุณที่เพิ่มบอท!\n\n📢 ห้อง "${room.name}" ถูกผูกกับกลุ่มนี้แล้ว\n\n💬 สมาชิกที่อยู่ในกลุ่มก่อนหน้านี้สามารถส่งข้อความใดๆ ในกลุ่มนี้เพื่อลงทะเบียนเป็นสมาชิกห้องโดยอัตโนมัติ`,
+          text: `👋 ขอบคุณที่เชิญบอทเข้ากลุ่มครับ!\n\nห้อง "${room.name}" ตั้งค่าระบบเสร็จสมบูรณ์แล้ว \n\n⚠️ เพื่อให้บอทสามารถส่งใบแจ้งหนี้ให้ลูกบ้านทุกคนได้ โปรดให้สมาชิกทุกคนเพิ่มบอทเป็นเพื่อนด้วยนะครับ\n👉 แตะที่ลิงก์เพื่อเพิ่มเพื่อน: ${botLineUrl}`,
         },
       ],
     });
@@ -25,7 +26,7 @@ export async function handleBotJoin(event, lineClient) {
     messages: [
       {
         type: "text",
-        text: GROUP_WELCOME,
+        text: `${GROUP_WELCOME}\n\n⚠️ รบกวนสมาชิกในกลุ่มเพิ่มบอทเป็นเพื่อนด้วยนะครับ เพื่อให้รับการแจ้งเตือนค่าห้องได้\n👉 แตะที่ลิงก์เพื่อเพิ่มเพื่อน: ${botLineUrl}`,
         quickReply: {
           items: [
             {
@@ -82,12 +83,13 @@ export async function handleMemberJoined(event, lineClient) {
   }
 
   if (names.length > 0) {
+    const botLineUrl = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID || '@ไอดีบอท'}`;
     await lineClient.pushMessage({
       to: groupId,
       messages: [
         {
           type: "text",
-          text: `👋 ยินดีต้อนรับ ${names.join(", ")} เข้าสู่ห้อง "${room.name}"!\n\nระบบได้เพิ่มคุณเป็นสมาชิกห้องเรียบร้อยแล้ว ✅`,
+          text: `🎉 ยินดีต้อนรับ ${names.join(", ")} เข้าสู่ห้อง "${room.name}"!\n\nระบบได้เพิ่มคุณเข้าเป็นลูกบ้านเรียบร้อยแล้วครับ 📋\n\n⚠️ รบกวนเพิ่มบอทเป็นเพื่อนเพื่อรับการแจ้งเตือนยอดชำระด้วยนะครับ\n👉 แตะลิงก์เพื่อเพิ่มเพื่อน: ${botLineUrl}`,
         },
       ],
     });
