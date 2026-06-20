@@ -134,57 +134,69 @@ export async function handleShowRooms(event, lineClient) {
   const bubbles = uniqueRooms.map(room => {
     const isManager = ownedIds.has(room.id);
     const roleText = isManager ? LABEL_ROLE_MANAGER : LABEL_ROLE_MEMBER;
-    const roleBadgeColor = isManager ? '#FFF3E0' : '#E8F5E9';
-    const roleTextColor = isManager ? '#E65100' : '#2E7D32';
+    
+    // Premium locked logic
+    const isLocked = room.isPremium === true;
+
+    // Use theme colors
+    const roleBadgeColor = isManager ? '#00c6ae' : '#e5e7eb';
+    const roleTextColor = isManager ? '#ffffff' : '#4b5563';
 
     return {
       type: 'bubble',
       body: {
         type: 'box',
         layout: 'vertical',
-        spacing: 'md',
+        paddingAll: '0px',
         contents: [
           {
             type: 'box',
-            layout: 'horizontal',
-            alignItems: 'center',
+            layout: 'vertical',
+            paddingAll: 'xl',
+            backgroundColor: isLocked ? '#f3f4f6' : '#f0fffc',
             contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                contents: [
+                  {
+                    type: 'text',
+                    text: isLocked ? '🔒' : '🏠',
+                    size: 'xl',
+                    flex: 0
+                  },
+                  {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [{
+                      type: 'text',
+                      text: roleText,
+                      size: 'xs',
+                      color: isLocked ? '#9ca3af' : roleTextColor,
+                      weight: 'bold',
+                      align: 'center'
+                    }],
+                    backgroundColor: isLocked ? '#e5e7eb' : roleBadgeColor,
+                    cornerRadius: '100px',
+                    paddingStart: '8px',
+                    paddingEnd: '8px',
+                    paddingTop: '2px',
+                    paddingBottom: '2px',
+                    flex: 0
+                  }
+                ]
+              },
               {
                 type: 'text',
                 text: room.name,
                 weight: 'bold',
-                size: 'lg',
+                size: 'xl',
+                color: isLocked ? '#9ca3af' : '#16a085',
                 wrap: true,
-                flex: 1
-              },
-              {
-                type: 'box',
-                layout: 'vertical',
-                contents: [{
-                  type: 'text',
-                  text: roleText,
-                  size: 'xs',
-                  color: roleTextColor,
-                  weight: 'bold',
-                  align: 'center'
-                }],
-                backgroundColor: roleBadgeColor,
-                cornerRadius: '8px',
-                paddingAll: '3px',
-                paddingStart: '7px',
-                paddingEnd: '7px',
-                alignItems: 'center',
-                justifyContent: 'center'
+                margin: 'lg'
               }
-            ]
-          },
-          {
-            type: 'box',
-            layout: 'horizontal',
-            spacing: 'sm',
-            contents: [
-              { type: 'text', text: LABEL_PROMPTPAY, color: '#8c8c8c', size: 'sm', flex: 1 },
-              { type: 'text', text: room.promptpayNo, color: '#333333', size: 'sm', flex: 1, align: 'end' }
             ]
           }
         ]
@@ -192,17 +204,24 @@ export async function handleShowRooms(event, lineClient) {
       footer: {
         type: 'box',
         layout: 'vertical',
-        spacing: 'sm',
+        paddingAll: 'md',
         contents: [{
           type: 'button',
           style: 'primary',
+          color: isLocked ? '#ef4444' : '#00c6ae',
           height: 'sm',
-          action: {
-            type: 'postback',
-            label: BTN_SELECT_ROOM,
-            data: `action=select_room&room_id=${room.id}`,
-            displayText: displaySelectingRoom(room.name)
-          }
+          action: isLocked
+            ? {
+              type: 'uri',
+              label: '💳 ชำระเงินเพื่อปลดล็อค',
+              // uri: `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}`
+            }
+            : {
+              type: 'postback',
+              label: BTN_SELECT_ROOM,
+                data: `action=select_room&room_id=${room.id}`,
+                displayText: displaySelectingRoom(room.name)
+              }
         }]
       }
     };
