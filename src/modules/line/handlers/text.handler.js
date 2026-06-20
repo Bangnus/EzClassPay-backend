@@ -215,8 +215,8 @@ export async function handleText(event, lineClient) {
   }
 
   // ===== 4. fallback สำหรับข้อความที่ไม่รู้จัก =====
-  return lineClient.replyMessage({
-    replyToken,
-    messages: [{ type: 'text', text: UNKNOWN_COMMAND }]
-  });
+  // return lineClient.replyMessage({
+  //   replyToken,
+  //   messages: [{ type: 'text', text: UNKNOWN_COMMAND }]
+  // });
 }

@@ -87,10 +87,10 @@ export const displayPayingPeriod = (name) => `กำลังจ่าย ${name
 // ---------- altText สำหรับ Flex ----------
 export const ALT_ROOM_LIST = `รายการห้องทั้งหมด`;
 export const ALT_PERIOD_LIST = `รายการงวดที่ต้องชำระเงิน`;
-export const ALT_ROOM_CREATED = `✅ สร้างห้องกองกลางสำเร็จ!`;
+export const ALT_ROOM_CREATED = `สร้างห้องกองกลางสำเร็จ!`;
 
 // ---------- Flex สร้างห้องสำเร็จ ----------
-export const ROOM_CREATED_HEADER = `✅ สร้างห้องกองกลางสำเร็จ!`;
+export const ROOM_CREATED_HEADER = `สร้างห้องกองกลางสำเร็จ!`;
 
 // ---------- Error HTTP (ส่งกลับ API) ----------
 export const ERR_USER_NOT_FOUND = `ไม่พบผู้ใช้งาน กรุณาทักแชทบอทเพื่อลงทะเบียนก่อน`;
