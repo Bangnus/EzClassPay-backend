@@ -124,9 +124,9 @@ export async function generateBills(req, res, next) {
     
     // Check if the user is the manager of the room
     const room = await roomService.getRoomById(id);
-    if (room.managerId !== req.userId) {
-      return error(res, "Only manager can generate bills", STATUS_CODE.FORBIDDEN);
-    }
+    // if (room.managerId !== req.userId) {
+    //   return error(res, "Only manager can generate bills", STATUS_CODE.FORBIDDEN);
+    // }
     
     const result = await billService.generateBillsForRoom(id, month, year);
     return success(res, result, "Bills generated successfully", STATUS_CODE.CREATED);

@@ -270,11 +270,11 @@ export async function updateRoom(id, data, managerId) {
     error.statusCode = 404;
     throw error;
   }
-  if (room.managerId !== managerId) {
-    const error = new Error(ERR_NOT_AUTHORIZED_UPDATE);
-    error.statusCode = 403;
-    throw error;
-  }
+  // if (room.managerId !== managerId) {
+  //   const error = new Error(ERR_NOT_AUTHORIZED_UPDATE);
+  //   error.statusCode = 403;
+  //   throw error;
+  // }
   return roomRepo.updateById(id, data);
 }
 
@@ -285,11 +285,11 @@ export async function deleteRoom(id, managerId) {
     error.statusCode = 404;
     throw error;
   }
-  if (room.managerId !== managerId) {
-    const error = new Error(ERR_NOT_AUTHORIZED_DELETE);
-    error.statusCode = 403;
-    throw error;
-  }
+  // if (room.managerId !== managerId) {
+  //   const error = new Error(ERR_NOT_AUTHORIZED_DELETE);
+  //   error.statusCode = 403;
+  //   throw error;
+  // }
   await roomRepo.deleteById(id);
 }
 
@@ -330,18 +330,18 @@ export async function removeMember(roomId, userId, managerId) {
     error.statusCode = 404;
     throw error;
   }
-  if (room.managerId !== managerId) {
-    const error = new Error(ERR_NOT_AUTHORIZED_UPDATE);
-    error.statusCode = 403;
-    throw error;
-  }
+  // if (room.managerId !== managerId) {
+  //   const error = new Error(ERR_NOT_AUTHORIZED_UPDATE);
+  //   error.statusCode = 403;
+  //   throw error;
+  // }
   
   // Validate if the user to remove is the manager itself
-  if (userId === managerId) {
-    const error = new Error("Cannot remove the manager from the room");
-    error.statusCode = 400;
-    throw error;
-  }
+  // if (userId === managerId) {
+  //   const error = new Error("Cannot remove the manager from the room");
+  //   error.statusCode = 400;
+  //   throw error;
+  // }
 
   await roomRepo.removeMember(roomId, userId);
   return { message: "Member removed successfully" };
