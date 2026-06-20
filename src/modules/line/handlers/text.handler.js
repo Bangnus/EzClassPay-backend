@@ -6,72 +6,72 @@ import {
   BTN_CREATE_ROOM, BTN_PAY_CHECK, BTN_SUMMARY
 } from "../../../constants/messages.js";
 
-export async function handleShowPeriods(event, lineClient) {
-  const userId = event.source.userId;
-  const groupId = event.source.groupId;
+export async function buildPeriodsCarouselMessage(room, userId, prisma) {
+  let items = [];
 
-  let room;
-  if (groupId) {
-    room = await prisma.room.findUnique({ where: { lineGroupId: groupId } });
-  } else {
+  if (room.collectionType === 'MONTHLY') {
     const user = await prisma.user.findUnique({ where: { lineUid: userId } });
-    if (!user) return;
+    if (!user) return null;
 
-    if (user.activeRoomId) {
-      room = await prisma.room.findUnique({ where: { id: user.activeRoomId } });
-    }
-    if (!room) {
-      const membership = await prisma.roomMember.findFirst({
-        where: { userId: user.id },
-        include: { room: true }
-      });
-      room = membership?.room;
-    }
-  }
+    const bills = await prisma.bill.findMany({
+      where: { roomId: room.id, userId: user.id },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      take: 10
+    });
 
-  if (!room) {
-    return lineClient.replyMessage({
-      replyToken: event.replyToken,
-      messages: [{ type: 'text', text: NO_PERIODS }]
+    const pendingPayment = await prisma.payment.findFirst({
+      where: { roomId: room.id, lineUid: userId, status: 'AWAITING_SLIP' }
+    });
+
+    items = bills.map(b => ({
+      id: b.id,
+      type: 'bill',
+      name: `บิลเดือน ${b.month}/${b.year}`,
+      amount: b.amount,
+      isPaid: b.status === 'PAID',
+      isPending: b.status === 'UNPAID' && pendingPayment != null
+    }));
+  } else {
+    const periods = await prisma.period.findMany({
+      where: { roomId: room.id },
+      include: {
+        payments: { where: { lineUid: userId } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    items = periods.map(p => {
+      const payment = p.payments[0];
+      return {
+        id: p.id,
+        type: 'period',
+        name: p.name,
+        amount: p.amount,
+        isPaid: payment && payment.status === 'APPROVED',
+        isPending: payment && payment.status === 'AWAITING_SLIP'
+      };
     });
   }
 
-  const periods = await prisma.period.findMany({
-    where: { roomId: room.id },
-    include: {
-      payments: {
-        where: { lineUid: event.source.userId }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 10
-  });
-
-  if (periods.length === 0) {
-    return lineClient.replyMessage({
-      replyToken: event.replyToken,
-      messages: [{ type: 'text', text: "ยังไม่มีงวดชำระเงินในห้องนี้ครับ" }]
-    });
+  if (items.length === 0) {
+    return { type: 'text', text: "ยังไม่มีงวดชำระเงินในห้องนี้ครับ" };
   }
 
-  const bubbles = periods.map(period => {
-    const payment = period.payments[0];
-    const isPaid = payment && payment.status === 'APPROVED';
-    const isPending = payment && payment.status === 'AWAITING_SLIP';
-    
+  const bubbles = items.map(item => {
     let buttonStyle = 'primary';
     let buttonColor = '#00c6ae';
     let buttonLabel = '💳 เลือกชำระงวดนี้';
-    let action = { type: 'postback', label: buttonLabel, data: `action=pay&period_id=${period.id}` };
+    let action = { type: 'postback', label: buttonLabel, data: `action=pay&${item.type}_id=${item.id}` };
 
-    if (isPaid) {
-      buttonColor = '#16a34a'; // green
+    if (item.isPaid) {
+      buttonColor = '#16a34a';
       buttonLabel = '✅ ชำระแล้ว';
-      action = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' }; // dummy action
-    } else if (isPending) {
-      buttonColor = '#f59e0b'; // amber
+      action = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' };
+    } else if (item.isPending) {
+      buttonColor = '#f59e0b';
       buttonLabel = '⏳ รอตรวจสอบ';
-      action = { type: 'postback', label: buttonLabel, data: `action=pay&period_id=${period.id}` };
+      action = { type: 'postback', label: buttonLabel, data: `action=pay&${item.type}_id=${item.id}` };
     }
 
     return {
@@ -115,7 +115,7 @@ export async function handleShowPeriods(event, lineClient) {
           },
           {
             type: 'text',
-            text: period.name,
+            text: item.name,
             weight: 'bold',
             size: 'md',
             color: '#374151',
@@ -125,7 +125,7 @@ export async function handleShowPeriods(event, lineClient) {
           },
           {
             type: 'text',
-            text: `ยอดเงิน: ฿${Number(period.amount).toLocaleString()}`,
+            text: `ยอดเงิน: ฿${Number(item.amount).toLocaleString()}`,
             size: 'sm',
             color: '#6b7280',
             align: 'center',
@@ -148,16 +148,52 @@ export async function handleShowPeriods(event, lineClient) {
     };
   });
 
+  return {
+    type: 'flex',
+    altText: `เลือกงวดชำระเงินค่าห้อง ${room.name}`,
+    contents: {
+      type: 'carousel',
+      contents: bubbles
+    }
+  };
+}
+
+export async function handleShowPeriods(event, lineClient) {
+  const userId = event.source.userId;
+  const groupId = event.source.groupId;
+  let room;
+
+  if (groupId) {
+    room = await prisma.room.findUnique({ where: { lineGroupId: groupId } });
+  } else {
+    const user = await prisma.user.findUnique({ where: { lineUid: userId } });
+    if (!user) return;
+
+    if (user.activeRoomId) {
+      room = await prisma.room.findUnique({ where: { id: user.activeRoomId } });
+    }
+    if (!room) {
+      const membership = await prisma.roomMember.findFirst({
+        where: { userId: user.id },
+        include: { room: true }
+      });
+      room = membership?.room;
+    }
+  }
+
+  if (!room) {
+    return lineClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [{ type: 'text', text: NO_PERIODS }]
+    });
+  }
+
+  const carouselMsg = await buildPeriodsCarouselMessage(room, userId, prisma);
+  if (!carouselMsg) return;
+
   return lineClient.replyMessage({
     replyToken: event.replyToken,
-    messages: [{
-      type: 'flex',
-      altText: `เลือกงวดชำระเงินค่าห้อง ${room.name}`,
-      contents: {
-        type: 'carousel',
-        contents: bubbles
-      }
-    }]
+    messages: [carouselMsg]
   });
 }
 
