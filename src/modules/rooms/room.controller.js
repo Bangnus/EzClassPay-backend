@@ -110,3 +110,27 @@ export async function removeMember(req, res, next) {
     next(err);
   }
 }
+
+import * as billService from "../bills/bill.service.js";
+
+export async function generateBills(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { month, year } = req.body;
+    
+    if (!month || !year) {
+      return error(res, "month and year are required", STATUS_CODE.BAD_REQUEST);
+    }
+    
+    // Check if the user is the manager of the room
+    const room = await roomService.getRoomById(id);
+    if (room.managerId !== req.userId) {
+      return error(res, "Only manager can generate bills", STATUS_CODE.FORBIDDEN);
+    }
+    
+    const result = await billService.generateBillsForRoom(id, month, year);
+    return success(res, result, "Bills generated successfully", STATUS_CODE.CREATED);
+  } catch (err) {
+    next(err);
+  }
+}

@@ -8,6 +8,8 @@ export const roomSelect = {
   promptpayNo: true,
   isPremium: true,
   lineGroupId: true,
+  autoBillingEnabled: true,
+  billingDayOfMonth: true,
   createdAt: true,
   members: {
     select: {

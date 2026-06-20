@@ -35,6 +35,8 @@ model Room {
   promptpayNo      String   @map("promptpay_no")
   isPremium        Boolean  @default(false) @map("is_premium")
   lineGroupId      String?  @unique @map("line_group_id")
+  autoBillingEnabled Boolean @default(true) @map("auto_billing_enabled")
+  billingDayOfMonth  Int?    @default(1) @map("billing_day_of_month")
   createdAt        DateTime @default(now()) @map("created_at")
 
   manager      User          @relation("ManagerRooms", fields: [managerId], references: [id], onDelete: Restrict)

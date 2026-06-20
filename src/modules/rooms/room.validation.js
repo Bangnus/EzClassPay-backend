@@ -35,5 +35,13 @@ export function validateUpdateRoom(data) {
   if (data.periodicAmount !== undefined && data.periodicAmount !== null && typeof data.periodicAmount !== "number") {
     errors.push("periodicAmount must be a number");
   }
+  if (data.autoBillingEnabled !== undefined && typeof data.autoBillingEnabled !== "boolean") {
+    errors.push("autoBillingEnabled must be a boolean");
+  }
+  if (data.billingDayOfMonth !== undefined && data.billingDayOfMonth !== null) {
+    if (typeof data.billingDayOfMonth !== "number" || data.billingDayOfMonth < 1 || data.billingDayOfMonth > 31) {
+      errors.push("billingDayOfMonth must be a number between 1 and 31");
+    }
+  }
   return errors;
 }

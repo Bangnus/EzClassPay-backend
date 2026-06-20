@@ -14,5 +14,6 @@ router.delete("/:id", authenticate, roomController.remove);
 router.post("/:id/sync-members", roomController.syncMembers);
 router.get("/:id/members", roomController.getMembers);
 router.delete("/:id/members/:userId", authenticate, roomController.removeMember);
+router.post("/:id/generate-bills", authenticate, roomController.generateBills);
 
 export default router;

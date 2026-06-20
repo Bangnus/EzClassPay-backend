@@ -111,6 +111,7 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 | `POST` | `/api/rooms/:id/sync-members` | อัปเดต/ซิงค์รายชื่อสมาชิกในห้อง |
 | `GET` | `/api/rooms/:id/members` | ดูรายชื่อสมาชิกทั้งหมดในห้อง |
 | `DELETE` | `/api/rooms/:id/members/:userId` | ลบผู้ใช้ออกจากห้อง |
+| `POST` | `/api/rooms/:id/generate-bills` | กดสั่งสร้างบิลของห้องในเดือนที่ระบุ (Manager Only) |
 
 **Example `POST /api/rooms`:**
 - **Body:**
@@ -134,7 +135,9 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
       "id": "room-uuid",
       "name": "ค่าห้อง 6/1",
       "collectionType": "MONTHLY",
-      "periodicAmount": 500
+      "periodicAmount": 500,
+      "autoBillingEnabled": true,
+      "billingDayOfMonth": 1
     }
   }
   ```
@@ -145,7 +148,31 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   {
     "name": "ชื่อห้องใหม่",
     "totalTargetAmount": 1000,
-    "periodicAmount": 200
+    "periodicAmount": 200,
+    "autoBillingEnabled": false,
+    "billingDayOfMonth": 5
+  }
+  ```
+
+**Example `POST /api/rooms/:id/generate-bills`:**
+- **Body:**
+  ```json
+  {
+    "month": 6,
+    "year": 2026
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Bills generated successfully",
+    "data": {
+      "roomId": "room-uuid",
+      "roomName": "ชื่อห้อง",
+      "newBillsCreated": 0,
+      "membersNotified": 15
+    }
   }
   ```
 

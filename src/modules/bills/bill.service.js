@@ -104,6 +104,98 @@ export async function generateMonthlyBills(month, year) {
   return results;
 }
 
+export async function generateBillsForRoom(roomId, month, year) {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: { id: true, lineUid: true, displayName: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!room || !room.periodicAmount || room.members.length === 0) {
+    const error = new Error("Room not found or cannot generate bills");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const amount = room.periodicAmount;
+  const dueDate = new Date(year, month, 1);
+
+  // Fetch existing bills for this month
+  const existingBills = await billRepo.findBillsByRoomAndMonth(roomId, month, year);
+  const existingUserIds = existingBills.map(b => b.userId);
+
+  // Create bills only for members who don't have one
+  const missingMembers = room.members.filter(m => !existingUserIds.includes(m.user.id));
+  let newBillsCount = 0;
+
+  if (missingMembers.length > 0) {
+    const billData = missingMembers.map((member) => ({
+      month,
+      year,
+      dueDate,
+      amount,
+      roomId: room.id,
+      userId: member.user.id,
+    }));
+    const created = await billRepo.createBills(billData);
+    newBillsCount = created.count;
+  }
+
+  // Refetch all bills for this month to include the newly created ones
+  const allBillsThisMonth = await billRepo.findBillsByRoomAndMonth(roomId, month, year);
+
+  const monthName = getThaiMonthName(month);
+  const dateStr = `${dueDate.getDate()}/${dueDate.getMonth() + 1}/${dueDate.getFullYear() + 543}`;
+
+  let notifiedCount = 0;
+
+  for (const member of room.members) {
+    // Check if this member has an UNPAID or OVERDUE bill
+    const memberBill = allBillsThisMonth.find(b => b.userId === member.user.id);
+    if (memberBill && (memberBill.status === "UNPAID" || memberBill.status === "OVERDUE")) {
+      try {
+        await sendBillNotification(member.user, {
+          roomId: room.id,
+          roomName: room.name,
+          amount,
+          month: monthName,
+          dueDate: dateStr,
+          promptpayNo: room.promptpayNo,
+        });
+        notifiedCount++;
+      } catch (e) {
+        console.error(
+          `Failed to notify user ${member.user.lineUid}: ${e.message}`
+        );
+      }
+    }
+  }
+
+  if (room.lineGroupId && notifiedCount > 0) {
+    try {
+      await sendGroupBillNotification(room, {
+        amount,
+        month: monthName,
+        dueDate: dateStr,
+        memberCount: notifiedCount, // Notify group about the number of unpaid members
+      });
+    } catch (e) {
+      console.error(
+        `Failed to notify group ${room.lineGroupId}: ${e.message}`
+      );
+    }
+  }
+
+  return { roomId: room.id, roomName: room.name, newBillsCreated: newBillsCount, membersNotified: notifiedCount };
+}
+
 function getThaiMonthName(month) {
   const names = [
     "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
