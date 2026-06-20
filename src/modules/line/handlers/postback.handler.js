@@ -92,7 +92,10 @@ export async function handlePostback(event, lineClient) {
     }
 
     try {
-      await lineClient.pushMessage(event.source.userId, messages);
+      await lineClient.pushMessage({
+        to: event.source.userId,
+        messages: messages
+      });
       const botLineUrl = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID || '@ไอดีบอท'}`;
       return lineClient.replyMessage({
         replyToken: event.replyToken,
@@ -103,11 +106,14 @@ export async function handlePostback(event, lineClient) {
       });
     } catch (error) {
       console.error('Failed to push message:', error);
+      const errorData = error.originalError?.response?.data;
+      const errorMsg = errorData?.message || error.message || 'Unknown error';
+      const errorDetails = errorData?.details ? JSON.stringify(errorData.details) : '';
       return lineClient.replyMessage({
         replyToken: event.replyToken,
         messages: [{
           type: 'text',
-          text: `ไม่สามารถส่งข้อความไปที่แชทส่วนตัวได้ครับ รบกวนเพิ่มบอทเป็นเพื่อนก่อนนะครับ`
+          text: `ไม่สามารถส่งข้อความไปที่แชทส่วนตัวได้ครับ: ${errorMsg}\nรายละเอียด: ${errorDetails}`
         }]
       });
     }
