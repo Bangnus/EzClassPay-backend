@@ -29,5 +29,11 @@ export function validateUpdateRoom(data) {
   if (data.promptpayNo && typeof data.promptpayNo !== "string") {
     errors.push("Promptpay number must be a string");
   }
+  if (data.totalTargetAmount !== undefined && data.totalTargetAmount !== null && typeof data.totalTargetAmount !== "number") {
+    errors.push("totalTargetAmount must be a number");
+  }
+  if (data.periodicAmount !== undefined && data.periodicAmount !== null && typeof data.periodicAmount !== "number") {
+    errors.push("periodicAmount must be a number");
+  }
   return errors;
 }

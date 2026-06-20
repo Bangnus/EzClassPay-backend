@@ -92,3 +92,21 @@ export async function remove(req, res, next) {
     next(err);
   }
 }
+
+export async function getMembers(req, res, next) {
+  try {
+    const members = await roomService.getMembers(req.params.id);
+    return success(res, members);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeMember(req, res, next) {
+  try {
+    await roomService.removeMember(req.params.id, req.params.userId, req.userId);
+    return success(res, null, "Member removed", STATUS_CODE.NO_CONTENT);
+  } catch (err) {
+    next(err);
+  }
+}

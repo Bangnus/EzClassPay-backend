@@ -12,6 +12,7 @@ export async function getBillsByRoom(req, res, next) {
     const options = {};
     if (req.query.limit) options.limit = parseInt(req.query.limit, 10);
     if (req.query.lineUid) options.lineUid = req.query.lineUid;
+    if (req.query.userId) options.userId = req.query.userId;
     const bills = await billService.getBillsByRoom(roomId, options);
     return success(res, bills);
   } catch (err) {

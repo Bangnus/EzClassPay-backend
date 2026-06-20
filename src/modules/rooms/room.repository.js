@@ -38,3 +38,14 @@ export function findByUserLineUid(lineUid) {
     }
   });
 }
+
+export function removeMember(roomId, userId) {
+  return prisma.roomMember.delete({
+    where: {
+      roomId_userId: {
+        roomId,
+        userId
+      }
+    }
+  });
+}

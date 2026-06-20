@@ -27,10 +27,16 @@ export function findById(id) {
   });
 }
 
-export function findByRoom(roomId) {
+export function findByRoom(roomId, options = {}) {
+  const where = { roomId };
+  if (options.userId) {
+    where.user = { id: options.userId };
+  }
+  
   return prisma.payment.findMany({
-    where: { roomId },
+    where,
     include: {
+      period: true,
       user: { select: { id: true, displayName: true, lineUid: true } },
     },
     orderBy: { createdAt: "desc" },

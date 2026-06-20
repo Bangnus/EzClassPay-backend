@@ -148,8 +148,8 @@ export async function rejectPayment(paymentId) {
   return updated;
 }
 
-export async function getPaymentHistory(roomId) {
-  return paymentRepo.findByRoom(roomId);
+export async function getPaymentHistory(roomId, options = {}) {
+  return paymentRepo.findByRoom(roomId, options);
 }
 
 export async function getPendingPayments(roomId) {

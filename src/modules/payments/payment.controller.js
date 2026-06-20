@@ -35,7 +35,9 @@ export async function reject(req, res, next) {
 
 export async function history(req, res, next) {
   try {
-    const payments = await paymentService.getPaymentHistory(req.params.roomId);
+    const options = {};
+    if (req.query.userId) options.userId = req.query.userId;
+    const payments = await paymentService.getPaymentHistory(req.params.roomId, options);
     return success(res, payments);
   } catch (err) {
     next(err);

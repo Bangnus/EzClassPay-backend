@@ -1,4 +1,5 @@
 import prisma from "../../../config/database.js";
+import { GROUP_WELCOME } from "../../../constants/messages.js";
 
 export async function handleBotJoin(event, lineClient) {
   const groupId = event.source.groupId;
@@ -24,7 +25,7 @@ export async function handleBotJoin(event, lineClient) {
     messages: [
       {
         type: "text",
-        text: `🙏 ขอบคุณที่เพิ่มบอทเข้ามาในกลุ่ม!\n\n📌 กรุณาไปที่ลิงก์ด้านล่างเพื่อสร้างห้องและผูกกลุ่มนี้`,
+        text: GROUP_WELCOME,
         quickReply: {
           items: [
             {

@@ -312,3 +312,37 @@ export async function syncMembers(roomId) {
     message: "LINE trial channel ไม่สามารถดึงรายชื่อสมาชิกเก่าได้ กรุณาให้สมาชิกส่งข้อความในกลุ่มเพื่อลงทะเบียนอัตโนมัติ",
   };
 }
+
+export async function getMembers(roomId) {
+  const room = await roomRepo.findById(roomId);
+  if (!room) {
+    const error = new Error(ERR_ROOM_NOT_FOUND);
+    error.statusCode = 404;
+    throw error;
+  }
+  return room.members;
+}
+
+export async function removeMember(roomId, userId, managerId) {
+  const room = await roomRepo.findById(roomId);
+  if (!room) {
+    const error = new Error(ERR_ROOM_NOT_FOUND);
+    error.statusCode = 404;
+    throw error;
+  }
+  if (room.managerId !== managerId) {
+    const error = new Error(ERR_NOT_AUTHORIZED_UPDATE);
+    error.statusCode = 403;
+    throw error;
+  }
+  
+  // Validate if the user to remove is the manager itself
+  if (userId === managerId) {
+    const error = new Error("Cannot remove the manager from the room");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await roomRepo.removeMember(roomId, userId);
+  return { message: "Member removed successfully" };
+}

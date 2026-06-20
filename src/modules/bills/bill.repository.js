@@ -6,6 +6,9 @@ export function findBillsByRoom(roomId, options = {}) {
   if (options.lineUid) {
     where.user = { lineUid: options.lineUid };
   }
+  if (options.userId) {
+    where.userId = options.userId;
+  }
   return prisma.bill.findMany({
     where,
     select: billSelect,
