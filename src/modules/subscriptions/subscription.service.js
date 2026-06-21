@@ -11,8 +11,8 @@ function getSubscriptionPrice() {
   return parseInt(process.env.SUBSCRIPTION_PRICE_THB || "9900", 10); // สตางค์ (99.00 บาท)
 }
 
-// ─── Create Stripe Checkout Session ──────────────────────────────
-export async function createCheckoutSession(roomId, managerId) {
+// ─── Create Stripe Payment Intent for PromptPay ────────────────────────
+export async function createPromptPayIntent(roomId, managerId) {
   const room = await prisma.room.findUnique({ where: { id: roomId } });
   if (!room) {
     const error = new Error("Room not found");
@@ -35,58 +35,110 @@ export async function createCheckoutSession(roomId, managerId) {
 
   const priceAmount = getSubscriptionPrice();
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["promptpay", "card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "thb",
-          product_data: {
-            name: `EzClassPay — ต่ออายุห้อง "${room.name}"`,
-            description: `ค่าบริการ ${PLAN_DAYS} วัน`,
-          },
-          unit_amount: priceAmount,
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    success_url: `${process.env.PUBLIC_API_URL}/api/subscriptions/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.PUBLIC_API_URL}/api/subscriptions/cancel`,
+  // 1. ลองค้นหารายการที่รอชำระ (PENDING) เดิมในระบบ
+  const existingSub = await prisma.subscription.findFirst({
+    where: {
+      roomId: room.id,
+      managerId: manager.id,
+      status: "PENDING"
+    }
+  });
+
+  // ถ้ามีรายการเดิมอยู่ ลองดึงข้อมูลจาก Stripe มาดูว่ายังใช้ได้ไหม
+  if (existingSub) {
+    try {
+      const existingIntent = await stripe.paymentIntents.retrieve(existingSub.stripeIntentId);
+      if (existingIntent.status === "requires_action" || existingIntent.status === "requires_payment_method") {
+        const qrCodeUrl = existingIntent.next_action?.promptpay_display_qr_code?.image_url_png;
+        const hostedInstructionsUrl = existingIntent.next_action?.promptpay_display_qr_code?.hosted_instructions_url;
+        
+        if (qrCodeUrl) {
+          logger.info(`[Subscription] Reusing existing PaymentIntent ${existingIntent.id}`);
+          return { 
+            qrCodeUrl, 
+            hostedInstructionsUrl, 
+            intentId: existingIntent.id, 
+            amount: existingSub.amount 
+          };
+        }
+      }
+    } catch (e) {
+      logger.warn(`[Subscription] Failed to retrieve existing intent ${existingSub.stripeIntentId}: ${e.message}`);
+    }
+  }
+
+  // 2. ถ้าไม่มีรายการเดิม หรือรายการเดิมหมดอายุแล้ว -> สร้าง PaymentIntent ใหม่
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: priceAmount,
+    currency: "thb",
+    payment_method_types: ["promptpay"],
+    payment_method_data: {
+      type: "promptpay",
+      billing_details: {
+        email: `${manager.id}@ezclasspay.com` // Stripe ต้องการอีเมลสำหรับ PromptPay
+      }
+    },
+    confirm: true,
     metadata: {
       roomId: room.id,
       managerId: manager.id,
       planDays: String(PLAN_DAYS),
     },
+    return_url: `${process.env.PUBLIC_API_URL || "https://example.com"}/api/subscriptions/success`,
   });
 
-  // Save pending subscription record
-  await prisma.subscription.create({
-    data: {
-      roomId: room.id,
-      managerId: manager.id,
-      stripeSessionId: session.id,
-      amount: priceAmount / 100, // store as baht
-      currency: "thb",
-      status: "PENDING",
-      planDays: PLAN_DAYS,
-    },
-  });
+  const qrCodeUrl = paymentIntent.next_action?.promptpay_display_qr_code?.image_url_png;
+  const hostedInstructionsUrl = paymentIntent.next_action?.promptpay_display_qr_code?.hosted_instructions_url;
+  
+  if (!qrCodeUrl) {
+    throw new Error("Failed to generate PromptPay QR code");
+  }
 
-  return { url: session.url, sessionId: session.id };
+  // 3. บันทึกหรืออัปเดตลงฐานข้อมูล
+  if (existingSub) {
+    // อัปเดต row เดิมเพื่อไม่ให้เปลืองพื้นที่
+    await prisma.subscription.update({
+      where: { id: existingSub.id },
+      data: {
+        stripeIntentId: paymentIntent.id,
+        amount: priceAmount / 100,
+        createdAt: new Date(), // อัปเดตเวลาให้เป็นปัจจุบัน
+      }
+    });
+  } else {
+    // สร้างใหม่ถ้าไม่เคยมี
+    await prisma.subscription.create({
+      data: {
+        roomId: room.id,
+        managerId: manager.id,
+        stripeIntentId: paymentIntent.id,
+        amount: priceAmount / 100,
+        currency: "thb",
+        status: "PENDING",
+        planDays: PLAN_DAYS,
+      },
+    });
+  }
+
+  return { 
+    qrCodeUrl, 
+    hostedInstructionsUrl,
+    intentId: paymentIntent.id, 
+    amount: priceAmount / 100 
+  };
 }
 
-// ─── Handle Stripe Webhook: checkout.session.completed ───────────
-export async function handleCheckoutCompleted(session) {
-  const { roomId, managerId, planDays } = session.metadata;
+// ─── Handle Stripe Webhook: payment_intent.succeeded ────────────
+export async function handlePaymentIntentSucceeded(paymentIntent) {
+  const { roomId, managerId, planDays } = paymentIntent.metadata;
 
   // 1. Update subscription record
   const subscription = await prisma.subscription.findUnique({
-    where: { stripeSessionId: session.id },
+    where: { stripeIntentId: paymentIntent.id },
   });
 
   if (!subscription) {
-    logger.warn(`[Stripe] No subscription found for session ${session.id}`);
+    logger.warn(`[Stripe] No subscription found for intent ${paymentIntent.id}`);
     return;
   }
 
@@ -99,7 +151,7 @@ export async function handleCheckoutCompleted(session) {
     where: { id: subscription.id },
     data: {
       status: "COMPLETED",
-      stripePaymentId: session.payment_intent,
+      stripePaymentId: paymentIntent.id,
       completedAt: new Date(),
     },
   });

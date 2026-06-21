@@ -128,7 +128,7 @@ model Subscription {
   id              String    @id @default(uuid())
   roomId          String    @map("room_id")
   managerId       String    @map("manager_id")
-  stripeSessionId String    @unique @map("stripe_session_id")
+  stripeIntentId  String    @unique @map("stripe_intent_id")
   stripePaymentId String?   @map("stripe_payment_id")
   amount          Float
   currency        String    @default("thb")

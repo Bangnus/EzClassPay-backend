@@ -3,7 +3,6 @@ import { handleSwitchRoom, handleSelectRoom, handleLeaveRoom } from "./richmenu.
 import { handleShowPeriods, buildPeriodsCarouselMessage } from "./text.handler.js";
 import { PERIOD_NOT_FOUND, paymentDetail, SEND_SLIP_PROMPT, NO_MEMBERSHIP } from "../../../constants/messages.js";
 import { RICH_MENU } from "../../../constants/richmenu.js";
-import { createCheckoutSession } from "../../subscriptions/subscription.service.js";
 
 export async function handlePostback(event, lineClient) {
   const data = new URLSearchParams(event.postback.data);
@@ -35,7 +34,11 @@ export async function handlePostback(event, lineClient) {
     if (!user) return;
 
     try {
-      const { url } = await createCheckoutSession(roomId, user.id);
+      // Import needs to be updated at the top as well, but assuming createPromptPayIntent is imported correctly
+      // Wait, I need to make sure createPromptPayIntent is imported instead of createCheckoutSession.
+      // Let's use the new function from subscriptionService directly.
+      const { createPromptPayIntent } = await import('../../subscriptions/subscription.service.js');
+      const { qrCodeUrl, hostedInstructionsUrl, amount } = await createPromptPayIntent(roomId, user.id);
 
       const room = await prisma.room.findUnique({ where: { id: roomId } });
       const roomName = room?.name || 'ห้องของคุณ';
@@ -45,77 +48,113 @@ export async function handlePostback(event, lineClient) {
         messages: [
           {
             type: 'flex',
-            altText: `💳 ชำระค่าบริการห้อง "${roomName}"`,
+            altText: `คิวอาร์โค้ดชำระค่าบริการ ${roomName}`,
             contents: {
               type: 'bubble',
-              size: 'kilo',
+              size: 'mega',
               header: {
                 type: 'box',
                 layout: 'vertical',
-                backgroundColor: '#00c6ae',
-                paddingAll: 'lg',
+                backgroundColor: '#16a085',
+                paddingTop: '16px',
+                paddingBottom: '16px',
                 contents: [
                   {
                     type: 'text',
-                    text: '💳 ชำระค่าบริการ',
+                    text: '📲 สแกน QR เพื่อชำระค่าบริการ',
                     weight: 'bold',
                     size: 'lg',
                     color: '#ffffff',
-                    align: 'center',
-                  },
-                ],
+                    align: 'center'
+                  }
+                ]
+              },
+              hero: {
+                type: 'image',
+                url: qrCodeUrl,
+                size: 'full',
+                aspectRatio: '1:1',
+                aspectMode: 'cover',
+                action: {
+                  type: 'uri',
+                  label: 'เปิดรูปภาพ',
+                  uri: qrCodeUrl
+                }
               },
               body: {
                 type: 'box',
                 layout: 'vertical',
                 paddingAll: 'xl',
-                spacing: 'md',
                 contents: [
                   {
                     type: 'text',
-                    text: roomName,
+                    text: `ต่ออายุ 30 วัน`,
                     weight: 'bold',
                     size: 'xl',
                     color: '#16a085',
-                    align: 'center',
                     wrap: true,
+                    align: 'center'
                   },
                   {
-                    type: 'separator',
-                    margin: 'md',
-                    color: '#e5e7eb',
+                    type: 'box',
+                    layout: 'vertical',
+                    margin: 'lg',
+                    spacing: 'sm',
+                    contents: [
+                      {
+                        type: 'box',
+                        layout: 'horizontal',
+                        contents: [
+                          {
+                            type: 'text',
+                            text: 'ยอดเงิน',
+                            color: '#6b7280',
+                            size: 'sm',
+                            flex: 0
+                          },
+                          {
+                            type: 'text',
+                            text: `฿${Number(amount).toLocaleString()}`,
+                            weight: 'bold',
+                            color: '#00c6ae',
+                            size: 'lg',
+                            align: 'end',
+                            flex: 1
+                          }
+                        ]
+                      }
+                    ]
                   },
-                  {
-                    type: 'text',
-                    text: 'กดปุ่มด้านล่างเพื่อชำระค่าบริการ\nรองรับ PromptPay QR และบัตรเครดิต',
-                    size: 'sm',
-                    color: '#6b7280',
-                    wrap: true,
-                    align: 'center',
-                    margin: 'md',
-                  },
-                ],
-              },
-              footer: {
-                type: 'box',
-                layout: 'vertical',
-                paddingAll: 'md',
-                contents: [
                   {
                     type: 'button',
+                    margin: 'lg',
                     style: 'primary',
                     color: '#00c6ae',
                     height: 'sm',
                     action: {
                       type: 'uri',
-                      label: '💳 ชำระเงินเลย',
-                      uri: url,
-                    },
+                      label: '📥 เปิดหน้าชำระเงิน',
+                      uri: hostedInstructionsUrl || qrCodeUrl
+                    }
                   },
-                ],
-              },
-            },
-          },
+                  {
+                    type: 'separator',
+                    margin: 'xl',
+                    color: '#e5e7eb'
+                  },
+                  {
+                    type: 'text',
+                    text: 'สแกนจ่ายผ่านแอปธนาคารใดก็ได้\nเมื่อชำระสำเร็จ ห้องจะปลดล็อคอัตโนมัติครับ',
+                    wrap: true,
+                    color: '#6b7280',
+                    size: 'xs',
+                    align: 'center',
+                    margin: 'lg'
+                  }
+                ]
+              }
+            }
+          }
         ],
       });
     } catch (err) {

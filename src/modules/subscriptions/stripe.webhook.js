@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { constructEvent, handleCheckoutCompleted } from "./subscription.service.js";
+import { constructEvent, handlePaymentIntentSucceeded } from "./subscription.service.js";
 import { logger } from "../../utils/logger.js";
 
 const router = Router();
@@ -25,9 +25,9 @@ router.post("/", async (req, res) => {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object;
-        await handleCheckoutCompleted(session);
+      case "payment_intent.succeeded": {
+        const paymentIntent = event.data.object;
+        await handlePaymentIntentSucceeded(paymentIntent);
         break;
       }
       default:

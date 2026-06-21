@@ -311,3 +311,59 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   ]
 }
 ```
+
+---
+
+## 7. Subscriptions API (`/api/subscriptions`)
+การจัดการต่ออายุห้องและรับชำระค่าบริการผ่าน Stripe (PromptPay QR)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/subscriptions/checkout` | ขอ QR Code สำหรับต่ออายุห้อง (ใช้ Stripe Payment Intents) |
+| `GET` | `/api/subscriptions/room/:roomId` | ดูประวัติการชำระค่าต่ออายุของห้อง |
+| `GET` | `/api/subscriptions/success` | หน้าแสดงผลชำระเงินสำเร็จ (Redirect URL) |
+| `GET` | `/api/subscriptions/cancel` | หน้าแสดงผลชำระเงินไม่สำเร็จ/ยกเลิก (ถ้ามี) |
+
+**Example `POST /api/subscriptions/checkout`:**
+- **Body:**
+  ```json
+  {
+    "roomId": "room-uuid",
+    "managerId": "manager-uuid"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Payment Intent created",
+    "data": {
+      "qrCodeUrl": "https://qr.stripe.com/test_...",
+      "intentId": "pi_3P...",
+      "amount": 99
+    }
+  }
+  ```
+
+**Example Response (`GET /api/subscriptions/room/:roomId`):**
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": [
+    {
+      "id": "sub-uuid",
+      "roomId": "room-uuid",
+      "managerId": "manager-uuid",
+      "stripeIntentId": "pi_3P...",
+      "stripePaymentId": "pi_3P...",
+      "amount": 99,
+      "currency": "thb",
+      "status": "COMPLETED",
+      "planDays": 30,
+      "createdAt": "2026-06-21T04:30:00.000Z",
+      "completedAt": "2026-06-21T04:35:00.000Z"
+    }
+  ]
+}
+```
