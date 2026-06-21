@@ -212,9 +212,9 @@ export async function handleShowRooms(event, lineClient) {
           height: 'sm',
           action: isLocked
             ? {
-              type: 'uri',
+              type: 'postback',
               label: '💳 ชำระเงินเพื่อปลดล็อค',
-              // uri: `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}`
+              data: `action=subscribe&room_id=${room.id}`,
             }
             : {
               type: 'postback',

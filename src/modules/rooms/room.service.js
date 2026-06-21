@@ -86,6 +86,7 @@ export async function createRoom(data) {
     periodicAmount: data.periodic_amount || null,
     promptpayNo: data.promptpay_no,
     lineGroupId: data.line_group_id || null,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Free trial: 30 days
     members: {
       create: {
         userId: user.id

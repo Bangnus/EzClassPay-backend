@@ -5,6 +5,7 @@ import roomRoutes from "../modules/rooms/room.route.js";
 import expenseRoutes from "../modules/expenses/expense.route.js";
 import billRoutes from "../modules/bills/bill.route.js";
 import paymentRoutes from "../modules/payments/payment.route.js";
+import subscriptionRoutes from "../modules/subscriptions/subscription.route.js";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/rooms", roomRoutes);
 router.use("/expenses", expenseRoutes);
 router.use("/bills", billRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/subscriptions", subscriptionRoutes);
 
 export default router;

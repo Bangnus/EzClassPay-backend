@@ -3,14 +3,17 @@ import cors from "cors";
 import routes from "./routes/index.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 import { startBillingCron } from "./cron/billing.cron.js";
+import { startSubscriptionCron } from "./cron/subscription.cron.js";
 import { logger } from "./utils/logger.js";
 
 import lineWebhookRoutes from "./modules/line/line.route.js";
+import stripeWebhookRoutes from "./modules/subscriptions/stripe.webhook.js";
 
 const app = express();
 
-// 1. เส้นทาง Webhook สำหรับ LINE (ต้องอยู่ก่อน express.json)
+// 1. Webhook routes (ต้องอยู่ก่อน express.json — ต้องการ raw body)
 app.use("/api/webhook", express.text({ type: "*/*", limit: "5mb" }), lineWebhookRoutes);
+app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookRoutes);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -38,11 +41,12 @@ app.get("/api/files/:filename", async (req, res) => {
   }
 });
 
-// Start billing cron job
+// Start cron jobs
 try {
   startBillingCron();
+  startSubscriptionCron();
 } catch (err) {
-  logger.error(`Failed to start billing cron: ${err.message}`);
+  logger.error(`Failed to start cron jobs: ${err.message}`);
 }
 
 app.use(notFound);

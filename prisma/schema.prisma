@@ -34,6 +34,7 @@ model Room {
   periodicAmount   Float?   @map("periodic_amount")
   promptpayNo      String   @map("promptpay_no")
   isPremium        Boolean  @default(false) @map("is_premium")
+  expiresAt        DateTime? @map("expires_at")
   lineGroupId      String?  @unique @map("line_group_id")
   autoBillingEnabled Boolean @default(true) @map("auto_billing_enabled")
   billingDayOfMonth  Int?    @default(1) @map("billing_day_of_month")
@@ -44,7 +45,8 @@ model Room {
   periods      Period[]
   expenses     Expense[]
   bills        Bill[]
-  payments     Payment[]
+  payments       Payment[]
+  subscriptions  Subscription[]
 
   @@map("rooms")
 }
@@ -120,4 +122,22 @@ model Bill {
 
   @@unique([roomId, userId, month, year])
   @@map("bills")
+}
+
+model Subscription {
+  id              String    @id @default(uuid())
+  roomId          String    @map("room_id")
+  managerId       String    @map("manager_id")
+  stripeSessionId String    @unique @map("stripe_session_id")
+  stripePaymentId String?   @map("stripe_payment_id")
+  amount          Float
+  currency        String    @default("thb")
+  status          String    @default("PENDING") // PENDING, COMPLETED, EXPIRED
+  planDays        Int       @default(30) @map("plan_days")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  completedAt     DateTime? @map("completed_at")
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
 }

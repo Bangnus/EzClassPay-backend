@@ -62,7 +62,9 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
     let buttonStyle = 'primary';
     let buttonColor = '#00c6ae';
     let buttonLabel = '💳 เลือกชำระงวดนี้';
-    let action = { type: 'postback', label: buttonLabel, data: `action=pay&${item.type}_id=${item.id}` };
+    
+    const liffPayUrl = `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}&${item.type}Id=${item.id}`;
+    let action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
 
     if (item.isPaid) {
       buttonColor = '#16a34a';
@@ -71,7 +73,7 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
     } else if (item.isPending) {
       buttonColor = '#f59e0b';
       buttonLabel = '⏳ รอตรวจสอบ';
-      action = { type: 'postback', label: buttonLabel, data: `action=pay&${item.type}_id=${item.id}` };
+      action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
     }
 
     return {
