@@ -19,9 +19,11 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
       take: 10
     });
 
-    const pendingPayment = await prisma.payment.findFirst({
-      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } }
+    const pendingPayments = await prisma.payment.findMany({
+      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } },
+      select: { billId: true }
     });
+    const pendingBillIds = new Set(pendingPayments.map(p => p.billId).filter(Boolean));
 
     items = bills.map(b => ({
       id: b.id,
@@ -29,7 +31,7 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
       name: `บิลเดือน ${b.month}/${b.year}`,
       amount: b.amount,
       isPaid: b.status === 'PAID',
-      isPending: b.status === 'UNPAID' && pendingPayment != null
+      isPending: b.status === 'UNPAID' && pendingBillIds.has(b.id)
     }));
   } else {
     const periods = await prisma.period.findMany({

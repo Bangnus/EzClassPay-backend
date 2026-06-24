@@ -21,6 +21,7 @@ export function findById(id) {
     where: { id },
     include: {
       period: true,
+      bill: { select: { id: true, month: true, year: true, status: true } },
       room: { select: { id: true, name: true, lineGroupId: true, promptpayNo: true } },
       user: { select: { id: true, displayName: true, lineUid: true } },
     },

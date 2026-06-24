@@ -351,12 +351,13 @@ export async function handlePostback(event, lineClient) {
       }
 
       const existing = await prisma.payment.findFirst({
-        where: { roomId: bill.roomId, lineUid: event.source.userId, status: 'AWAITING_SLIP' }
+        where: { billId: bill.id, lineUid: event.source.userId, status: 'AWAITING_SLIP' }
       });
 
       if (!existing) {
         await prisma.payment.create({
           data: {
+            billId: bill.id,
             roomId: bill.roomId,
             lineUid: event.source.userId,
             status: 'AWAITING_SLIP'

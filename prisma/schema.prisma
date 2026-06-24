@@ -80,6 +80,7 @@ model Period {
 model Payment {
   id          String    @id @default(uuid())
   periodId    String?   @map("period_id")
+  billId      String?   @map("bill_id")
   roomId      String?   @map("room_id")
   lineUid     String    @map("line_uid")
   slipUrl     String?   @map("slip_url")
@@ -87,6 +88,7 @@ model Payment {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   period      Period?   @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  bill        Bill?     @relation(fields: [billId], references: [id], onDelete: Cascade)
   room        Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [lineUid], references: [lineUid], onDelete: Restrict)
 
@@ -117,8 +119,9 @@ model Bill {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room     Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
 
   @@unique([roomId, userId, month, year])
   @@map("bills")
