@@ -30,15 +30,11 @@ export const roomSelect = {
       lineUid: true
     }
   },
-  periods: true,
   payments: {
     where: { status: "APPROVED" },
     select: {
-      period: {
-        select: {
-          amount: true
-        }
-      }
+      amount: true,
+      createdAt: true
     }
   },
   expenses: {

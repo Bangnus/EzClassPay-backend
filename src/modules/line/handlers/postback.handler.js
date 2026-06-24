@@ -1,7 +1,7 @@
 import prisma from "../../../config/database.js";
 import { handleSwitchRoom, handleSelectRoom, handleLeaveRoom } from "./richmenu.handler.js";
-import { handleShowPeriods, buildPeriodsCarouselMessage } from "./text.handler.js";
-import { PERIOD_NOT_FOUND, paymentDetail, SEND_SLIP_PROMPT, NO_MEMBERSHIP } from "../../../constants/messages.js";
+import { handleShowPaymentItems, buildPaymentItemsMessage } from "./text.handler.js";
+import { SEND_SLIP_PROMPT, NO_MEMBERSHIP } from "../../../constants/messages.js";
 import { RICH_MENU } from "../../../constants/richmenu.js";
 
 export async function handlePostback(event, lineClient) {
@@ -200,24 +200,18 @@ export async function handlePostback(event, lineClient) {
       });
       unpaidTotal = bills.reduce((sum, b) => sum + b.amount, 0);
     } else {
-      const periods = await prisma.period.findMany({
-        where: { roomId: room.id },
-        include: {
-          payments: { where: { lineUid: userId } }
-        }
+      const approvedPayment = await prisma.payment.findFirst({
+        where: { roomId: room.id, lineUid: userId, status: 'APPROVED' }
       });
-      for (const p of periods) {
-        const approved = p.payments.some(pay => pay.status === 'APPROVED');
-        if (!approved) {
-          unpaidTotal += p.amount;
-        }
+      if (!approvedPayment) {
+        unpaidTotal = room.totalTargetAmount || 0;
       }
     }
 
     const summaryText = `ยอดค้างชำระของคุณในห้อง "${room.name}" คือ ฿${unpaidTotal.toLocaleString()}`;
 
-    // 3. Build Periods Carousel
-    const carouselMsg = await buildPeriodsCarouselMessage(room, event.source.userId, prisma);
+    // 3. Build Payment Items Carousel
+    const carouselMsg = await buildPaymentItemsMessage(room, event.source.userId, prisma);
 
     const messages = [];
     
@@ -260,10 +254,10 @@ export async function handlePostback(event, lineClient) {
   }
 
   if (action === 'pay') {
-    const periodId = data.get('period_id');
+    const type = data.get('type');
     const billId = data.get('bill_id');
 
-    if (!periodId && !billId) {
+    if (!type && !billId) {
       // Rich Menu pay → send LIFF URL or Carousel
       const user = await prisma.user.findUnique({ where: { lineUid: event.source.userId } });
       if (!user) return;
@@ -293,7 +287,7 @@ export async function handlePostback(event, lineClient) {
         });
       }
 
-      const carouselMsg = await buildPeriodsCarouselMessage(room, event.source.userId, prisma);
+      const carouselMsg = await buildPaymentItemsMessage(room, event.source.userId, prisma);
       if (!carouselMsg) return;
 
       return lineClient.replyMessage({
@@ -302,41 +296,41 @@ export async function handlePostback(event, lineClient) {
       });
     }
 
-    let periodName, amount, promptpayNo, roomId, roomName;
+    let itemName, amount, promptpayNo, roomId, roomName;
 
-    if (periodId) {
-      const period = await prisma.period.findUnique({
-        where: { id: periodId },
-        include: { room: true }
+    if (type === 'target') {
+      const roomIdParam = data.get('room_id');
+      const room = await prisma.room.findUnique({
+        where: { id: roomIdParam }
       });
 
-      if (!period) {
+      if (!room) {
         return lineClient.replyMessage({
           replyToken: event.replyToken,
-          messages: [{ type: 'text', text: PERIOD_NOT_FOUND }]
+          messages: [{ type: 'text', text: 'ไม่พบข้อมูลห้อง กรุณาลองใหม่อีกครั้ง' }]
         });
       }
 
       const existing = await prisma.payment.findFirst({
-        where: { periodId: period.id, lineUid: event.source.userId, status: 'AWAITING_SLIP' }
+        where: { roomId: room.id, lineUid: event.source.userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } }
       });
 
       if (!existing) {
         await prisma.payment.create({
           data: {
-            periodId: period.id,
-            roomId: period.roomId,
+            roomId: room.id,
             lineUid: event.source.userId,
+            amount: room.totalTargetAmount || 0,
             status: 'AWAITING_SLIP'
           }
         });
       }
 
-      periodName = period.name;
-      amount = period.amount;
-      promptpayNo = period.room.promptpayNo;
-      roomId = period.roomId;
-      roomName = period.room.name;
+      itemName = 'เป้าหมายรวม';
+      amount = room.totalTargetAmount || 0;
+      promptpayNo = room.promptpayNo;
+      roomId = room.id;
+      roomName = room.name;
     } else if (billId) {
       const bill = await prisma.bill.findUnique({
         where: { id: billId },
@@ -346,7 +340,7 @@ export async function handlePostback(event, lineClient) {
       if (!bill) {
         return lineClient.replyMessage({
           replyToken: event.replyToken,
-          messages: [{ type: 'text', text: PERIOD_NOT_FOUND }]
+          messages: [{ type: 'text', text: 'ไม่พบข้อมูลบิล กรุณาลองใหม่อีกครั้ง' }]
         });
       }
 
@@ -360,12 +354,13 @@ export async function handlePostback(event, lineClient) {
             billId: bill.id,
             roomId: bill.roomId,
             lineUid: event.source.userId,
+            amount: bill.amount,
             status: 'AWAITING_SLIP'
           }
         });
       }
 
-      periodName = `บิลเดือน ${bill.month}/${bill.year}`;
+      itemName = `บิลเดือน ${bill.month}/${bill.year}`;
       amount = bill.amount;
       promptpayNo = bill.room.promptpayNo;
       roomId = bill.roomId;
@@ -379,7 +374,7 @@ export async function handlePostback(event, lineClient) {
       messages: [
         {
           type: 'flex',
-          altText: `คิวอาร์โค้ดชำระเงิน ${periodName}`,
+          altText: `คิวอาร์โค้ดชำระเงิน ${itemName}`,
           contents: {
             type: 'bubble',
             size: 'mega',
@@ -414,7 +409,7 @@ export async function handlePostback(event, lineClient) {
               contents: [
                 {
                   type: 'text',
-                  text: periodName,
+                  text: itemName,
                   weight: 'bold',
                   size: 'xl',
                   color: '#16a085',

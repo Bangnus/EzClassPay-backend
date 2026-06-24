@@ -2,20 +2,13 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const room = await prisma.room.findFirst({
+  const rooms = await prisma.room.findMany({
     include: {
-      periods: {
-        include: {
-          payments: { where: { status: 'APPROVED' } }
-        }
-      }
+      bills: true,
+      payments: true
     }
   });
-
-  const allPeriods = await prisma.period.findMany({ where: { roomId: room.id } });
-
-  console.log(`Periods from include: ${room.periods.length}`);
-  console.log(`Periods from direct query: ${allPeriods.length}`);
+  console.log(rooms.map(r => ({ id: r.id, name: r.name, bills: r.bills.length, payments: r.payments.length })));
 }
 
 main().finally(() => prisma.$disconnect());

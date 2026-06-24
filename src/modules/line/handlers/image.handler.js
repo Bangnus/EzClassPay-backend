@@ -10,7 +10,6 @@ export async function handleImage(event, lineClient, blobClient) {
     where: { lineUid: userId, status: "AWAITING_SLIP" },
     orderBy: { createdAt: "desc" },
     include: {
-      period: true,
       room: {
         select: { id: true, name: true, lineGroupId: true, promptpayNo: true },
       },
@@ -144,7 +143,7 @@ export async function handleImage(event, lineClient, blobClient) {
       messages: [
         {
           type: "text",
-          text: slipSaved(pendingPayment.period?.name || roomName),
+          text: slipSaved(roomName),
         },
       ],
     });

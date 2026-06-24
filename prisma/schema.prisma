@@ -42,7 +42,6 @@ model Room {
 
   manager      User          @relation("ManagerRooms", fields: [managerId], references: [id], onDelete: Restrict)
   members      RoomMember[]
-  periods      Period[]
   expenses     Expense[]
   bills        Bill[]
   payments       Payment[]
@@ -64,30 +63,16 @@ model RoomMember {
   @@map("room_members")
 }
 
-model Period {
-  id          String    @id @default(uuid())
-  roomId      String    @map("room_id")
-  name        String
-  amount      Float
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  payments    Payment[]
-
-  @@map("periods")
-}
-
 model Payment {
   id          String    @id @default(uuid())
-  periodId    String?   @map("period_id")
   billId      String?   @map("bill_id")
   roomId      String?   @map("room_id")
   lineUid     String    @map("line_uid")
   slipUrl     String?   @map("slip_url")
+  amount      Float     @default(0)
   status      String    @default("PENDING") // "AWAITING_SLIP", "PENDING", "APPROVED", "REJECTED"
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  period      Period?   @relation(fields: [periodId], references: [id], onDelete: Cascade)
   bill        Bill?     @relation(fields: [billId], references: [id], onDelete: Cascade)
   room        Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [lineUid], references: [lineUid], onDelete: Restrict)

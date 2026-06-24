@@ -8,7 +8,7 @@ export function findPendingByLineUid(lineUid) {
   return prisma.payment.findFirst({
     where: { lineUid, status: "AWAITING_SLIP" },
     orderBy: { createdAt: "desc" },
-    include: { period: true, room: true },
+    include: { room: true },
   });
 }
 
@@ -20,7 +20,6 @@ export function findById(id) {
   return prisma.payment.findUnique({
     where: { id },
     include: {
-      period: true,
       bill: { select: { id: true, month: true, year: true, status: true } },
       room: { select: { id: true, name: true, lineGroupId: true, promptpayNo: true } },
       user: { select: { id: true, displayName: true, lineUid: true } },
@@ -37,7 +36,6 @@ export function findByRoom(roomId, options = {}) {
   return prisma.payment.findMany({
     where,
     include: {
-      period: true,
       user: { select: { id: true, displayName: true, lineUid: true } },
     },
     orderBy: { createdAt: "desc" },

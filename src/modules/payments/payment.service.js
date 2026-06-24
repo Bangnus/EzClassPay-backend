@@ -2,11 +2,11 @@ import * as paymentRepo from "./payment.repository.js";
 import * as billRepo from "../bills/bill.repository.js";
 import { lineClient } from "../line/line.service.js";
 
-export async function initiatePayment({ lineUid, roomId, periodId, amount }) {
+export async function initiatePayment({ lineUid, roomId, amount }) {
   const payment = await paymentRepo.createPayment({
     lineUid,
     roomId,
-    periodId: periodId || undefined,
+    amount: amount || 0,
     status: "AWAITING_SLIP",
   });
 
@@ -98,15 +98,6 @@ export async function approvePayment(paymentId) {
   try {
     if (payment.bill && payment.bill.status === "UNPAID") {
       await billRepo.updateBillStatus(payment.bill.id, "PAID");
-    } else if (!payment.bill) {
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      const year = now.getFullYear();
-      const bills = await billRepo.findBillsByRoomAndMonth(payment.room.id, month, year);
-      const userBill = bills.find(b => b.userId === payment.user.id && b.status === "UNPAID");
-      if (userBill) {
-        await billRepo.updateBillStatus(userBill.id, "PAID");
-      }
     }
   } catch (e) {
     console.error("Failed to update bill status:", e.message);

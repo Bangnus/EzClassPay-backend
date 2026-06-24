@@ -1,4 +1,5 @@
 import * as roomRepo from "./room.repository.js";
+import * as billRepo from "../bills/bill.repository.js";
 import { lineClient } from "../line/line.service.js";
 import {
   ERR_USER_NOT_FOUND, ERR_DUPLICATE_ROOM, ERR_ROOM_NOT_FOUND,
@@ -91,14 +92,34 @@ export async function createRoom(data) {
       create: {
         userId: user.id
       }
-    },
-    periods: {
-      create: {
-        name: "งวดที่ 1 (แรกเข้า)",
-        amount: data.periodic_amount || data.total_target_amount || 0
-      }
     }
   });
+
+  // 3.5 ถ้าเป็น MONTHLY สร้างบิลแรกให้สมาชิกทุกคนทันที
+  if (data.collection_type === "MONTHLY" && data.periodic_amount) {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const dueDate = new Date(year, month - 1, room.billingDayOfMonth || 1);
+    if (dueDate < now) {
+      dueDate.setMonth(dueDate.getMonth() + 1);
+    }
+
+    const billData = room.members.map((member) => ({
+      month,
+      year,
+      dueDate,
+      amount: data.periodic_amount,
+      roomId: room.id,
+      userId: member.userId,
+    }));
+
+    try {
+      await billRepo.createBills(billData);
+    } catch (e) {
+      console.error("Failed to create initial bills:", e.message);
+    }
+  }
 
   // 4. ส่ง Flex Message แจ้งเตือนไปยัง LINE Group
   if (room.lineGroupId) {

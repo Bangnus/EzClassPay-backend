@@ -6,7 +6,7 @@ import {
   BTN_CREATE_ROOM, BTN_PAY_CHECK, BTN_SUMMARY
 } from "../../../constants/messages.js";
 
-export async function buildPeriodsCarouselMessage(room, userId, prisma) {
+export async function buildPaymentItemsMessage(room, userId, prisma) {
   let items = [];
 
   if (room.collectionType === 'MONTHLY') {
@@ -21,9 +21,12 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
 
     const pendingPayments = await prisma.payment.findMany({
       where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } },
-      select: { billId: true }
+      select: { billId: true, status: true }
     });
-    const pendingBillIds = new Set(pendingPayments.map(p => p.billId).filter(Boolean));
+    const paymentByBillId = {};
+    for (const p of pendingPayments) {
+      if (p.billId) paymentByBillId[p.billId] = p.status;
+    }
 
     items = bills.map(b => ({
       id: b.id,
@@ -31,29 +34,28 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
       name: `บิลเดือน ${b.month}/${b.year}`,
       amount: b.amount,
       isPaid: b.status === 'PAID',
-      isPending: b.status === 'UNPAID' && pendingBillIds.has(b.id)
+      paymentStatus: b.status === 'UNPAID' ? (paymentByBillId[b.id] || null) : null
     }));
   } else {
-    const periods = await prisma.period.findMany({
-      where: { roomId: room.id },
-      include: {
-        payments: { where: { lineUid: userId } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10
+    const user = await prisma.user.findUnique({ where: { lineUid: userId } });
+    if (!user) return null;
+
+    const approvedPayment = await prisma.payment.findFirst({
+      where: { roomId: room.id, lineUid: userId, status: 'APPROVED' }
     });
 
-    items = periods.map(p => {
-      const payment = p.payments[0];
-      return {
-        id: p.id,
-        type: 'period',
-        name: p.name,
-        amount: p.amount,
-        isPaid: payment && payment.status === 'APPROVED',
-        isPending: payment && ['AWAITING_SLIP', 'PENDING'].includes(payment.status)
-      };
+    const pendingPayment = await prisma.payment.findFirst({
+      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } }
     });
+
+    items = [{
+      id: room.id,
+      type: 'target',
+      name: 'เป้าหมายรวม',
+      amount: room.totalTargetAmount || 0,
+      isPaid: !!approvedPayment,
+      paymentStatus: pendingPayment ? pendingPayment.status : null
+    }];
   }
 
   if (items.length === 0) {
@@ -65,14 +67,20 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
     let buttonColor = '#00c6ae';
     let buttonLabel = '💳 เลือกชำระงวดนี้';
     
-    const liffPayUrl = `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}&${item.type}Id=${item.id}`;
+    const liffPayUrl = item.type === 'target'
+      ? `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}&type=target`
+      : `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}&${item.type}Id=${item.id}`;
     let action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
 
     if (item.isPaid) {
       buttonColor = '#16a34a';
       buttonLabel = '✅ ชำระแล้ว';
       action = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' };
-    } else if (item.isPending) {
+    } else if (item.paymentStatus === 'PENDING') {
+      buttonColor = '#ea580c';
+      buttonLabel = '⏳ รอตรวจสอบสลิป';
+      action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
+    } else if (item.paymentStatus === 'AWAITING_SLIP') {
       buttonColor = '#f59e0b';
       buttonLabel = '⏳ รอตรวจสอบ';
       action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
@@ -162,7 +170,7 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
   };
 }
 
-export async function handleShowPeriods(event, lineClient) {
+export async function handleShowPaymentItems(event, lineClient) {
   const userId = event.source.userId;
   const groupId = event.source.groupId;
   let room;
@@ -192,7 +200,7 @@ export async function handleShowPeriods(event, lineClient) {
     });
   }
 
-  const carouselMsg = await buildPeriodsCarouselMessage(room, userId, prisma);
+  const carouselMsg = await buildPaymentItemsMessage(room, userId, prisma);
   if (!carouselMsg) return;
 
   return lineClient.replyMessage({
@@ -261,10 +269,9 @@ export async function handleText(event, lineClient) {
       const room = await prisma.room.findUnique({
         where: { lineGroupId: groupId },
         include: {
-          periods: {
-            include: {
-              payments: { where: { status: 'APPROVED' } }
-            }
+          payments: {
+            where: { status: 'APPROVED' },
+            select: { amount: true }
           },
           bills: true
         }
@@ -285,8 +292,8 @@ export async function handleText(event, lineClient) {
         totalPaid = room.bills.filter(b => b.status === 'PAID').reduce((sum, b) => sum + b.amount, 0);
         periodCount = new Set(room.bills.map(b => `${b.month}-${b.year}`)).size;
       } else {
-        totalPaid = room.periods.reduce((sum, p) => sum + p.payments.length * p.amount, 0);
-        periodCount = room.periods.length;
+        totalPaid = room.payments.reduce((sum, p) => sum + p.amount, 0);
+        periodCount = room.payments.length;
       }
 
       return lineClient.replyMessage({
@@ -312,10 +319,9 @@ export async function handleText(event, lineClient) {
       include: {
         room: {
           include: {
-            periods: {
-              include: {
-                payments: { where: { status: 'APPROVED' } }
-              }
+            payments: {
+              where: { status: 'APPROVED' },
+              select: { amount: true }
             },
             bills: true
           }
@@ -336,7 +342,7 @@ export async function handleText(event, lineClient) {
       if (r.collectionType === 'MONTHLY') {
         totalPaid = r.bills.filter(b => b.status === 'PAID').reduce((sum, b) => sum + b.amount, 0);
       } else {
-        totalPaid = r.periods.reduce((sum, p) => sum + p.payments.length * p.amount, 0);
+        totalPaid = r.payments.reduce((sum, p) => sum + p.amount, 0);
       }
       return `• ${r.name}: เก็บได้ ${totalPaid} บาท`;
     }).join('\n');
@@ -371,7 +377,7 @@ export async function handleText(event, lineClient) {
   }
 
   if (text === 'แจ้งโอนเงิน' || text === 'จ่ายเงิน') {
-    return handleShowPeriods(event, lineClient);
+    return handleShowPaymentItems(event, lineClient);
   }
 
   // ===== 4. fallback สำหรับข้อความที่ไม่รู้จัก =====

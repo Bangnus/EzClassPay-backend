@@ -4,6 +4,7 @@
 
 **รูปแบบ Response ทั่วไป (Global Response Format):**
 API ส่วนใหญ่จะตอบกลับในรูปแบบ JSON ดังนี้:
+
 ```json
 {
   "success": true,
@@ -11,7 +12,9 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   "data": { ... } // หรือเป็น Array [ ... ]
 }
 ```
+
 หากมีข้อผิดพลาด:
+
 ```json
 {
   "success": false,
@@ -23,15 +26,17 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 1. General & System API
+
 เส้นทางหลักของระบบและ Webhook สำหรับ LINE
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/health` | ตรวจสอบสถานะการทำงานของ Server |
-| `GET` | `/api/files/:filename` | ดึงไฟล์ภาพหรือสลิปที่ถูกอัปโหลดไว้ |
-| `POST` | `/api/webhook/line` | Webhook รับ Event จาก LINE |
+| Method | Endpoint               | Description                        |
+| :----- | :--------------------- | :--------------------------------- |
+| `GET`  | `/api/health`          | ตรวจสอบสถานะการทำงานของ Server     |
+| `GET`  | `/api/files/:filename` | ดึงไฟล์ภาพหรือสลิปที่ถูกอัปโหลดไว้ |
+| `POST` | `/api/webhook/line`    | Webhook รับ Event จาก LINE         |
 
 **Example Response (`GET /api/health`):**
+
 ```json
 {
   "status": "ok",
@@ -42,15 +47,17 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 2. Auth API (`/api/auth`)
+
 การจัดการสิทธิ์และการเข้าสู่ระบบ
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/auth/line-login` | เข้าสู่ระบบด้วย LINE Login |
-| `POST` | `/api/auth/sync` | ซิงค์ข้อมูลผู้ใช้จาก LINE Profile |
-| `GET` | `/api/auth/me` | ดึงข้อมูล Profile ของผู้ใช้ปัจจุบัน |
+| Method | Endpoint               | Description                         |
+| :----- | :--------------------- | :---------------------------------- |
+| `POST` | `/api/auth/line-login` | เข้าสู่ระบบด้วย LINE Login          |
+| `POST` | `/api/auth/sync`       | ซิงค์ข้อมูลผู้ใช้จาก LINE Profile   |
+| `GET`  | `/api/auth/me`         | ดึงข้อมูล Profile ของผู้ใช้ปัจจุบัน |
 
 **Example `POST /api/auth/line-login`:**
+
 - **Body:**
   ```json
   {
@@ -77,16 +84,18 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 3. Users API (`/api/users`)
+
 การจัดการผู้ใช้งานในระบบ
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/users` | ดึงรายชื่อผู้ใช้ทั้งหมด (Manager Only) |
-| `GET` | `/api/users/:id` | ดึงข้อมูลผู้ใช้งานตาม ID |
-| `PATCH` | `/api/users/:id` | แก้ไขข้อมูลผู้ใช้งานตาม ID |
-| `DELETE` | `/api/users/:id` | ลบผู้ใช้งาน (Manager Only) |
+| Method   | Endpoint         | Description                            |
+| :------- | :--------------- | :------------------------------------- |
+| `GET`    | `/api/users`     | ดึงรายชื่อผู้ใช้ทั้งหมด (Manager Only) |
+| `GET`    | `/api/users/:id` | ดึงข้อมูลผู้ใช้งานตาม ID               |
+| `PATCH`  | `/api/users/:id` | แก้ไขข้อมูลผู้ใช้งานตาม ID             |
+| `DELETE` | `/api/users/:id` | ลบผู้ใช้งาน (Manager Only)             |
 
 **Example `PATCH /api/users/:id`:**
+
 - **Body:**
   ```json
   {
@@ -97,23 +106,25 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 4. Rooms API (`/api/rooms`)
+
 การจัดการห้องเก็บเงินกองกลาง
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/rooms/my-rooms` | ดึงห้องของผู้ใช้ (`?lineUid=xxx`) |
-| `GET` | `/api/rooms` | ดึงรายชื่อห้องทั้งหมดในระบบ |
-| `GET` | `/api/rooms/by-group/:groupId` | ดึงข้อมูลห้องจาก LINE Group ID |
-| `GET` | `/api/rooms/:id` | ดึงข้อมูลห้องตาม ID |
-| `POST` | `/api/rooms` | สร้างห้องเก็บเงินใหม่ |
-| `PATCH` | `/api/rooms/:id` | อัปเดตข้อมูลห้อง (ชื่อห้อง, จำนวนเงิน) |
-| `DELETE` | `/api/rooms/:id` | ลบห้อง (Manager Only) |
-| `POST` | `/api/rooms/:id/sync-members` | อัปเดต/ซิงค์รายชื่อสมาชิกในห้อง |
-| `GET` | `/api/rooms/:id/members` | ดูรายชื่อสมาชิกทั้งหมดในห้อง |
-| `DELETE` | `/api/rooms/:id/members/:userId` | ลบผู้ใช้ออกจากห้อง |
-| `POST` | `/api/rooms/:id/generate-bills` | กดสั่งสร้างบิลของห้องในเดือนที่ระบุ (Manager Only) |
+| Method   | Endpoint                         | Description                                        |
+| :------- | :------------------------------- | :------------------------------------------------- |
+| `GET`    | `/api/rooms/my-rooms`            | ดึงห้องของผู้ใช้ (`?lineUid=xxx`)                  |
+| `GET`    | `/api/rooms`                     | ดึงรายชื่อห้องทั้งหมดในระบบ                        |
+| `GET`    | `/api/rooms/by-group/:groupId`   | ดึงข้อมูลห้องจาก LINE Group ID                     |
+| `GET`    | `/api/rooms/:id`                 | ดึงข้อมูลห้องตาม ID                                |
+| `POST`   | `/api/rooms`                     | สร้างห้องเก็บเงินใหม่                              |
+| `PATCH`  | `/api/rooms/:id`                 | อัปเดตข้อมูลห้อง (ชื่อห้อง, จำนวนเงิน)             |
+| `DELETE` | `/api/rooms/:id`                 | ลบห้อง (Manager Only)                              |
+| `POST`   | `/api/rooms/:id/sync-members`    | อัปเดต/ซิงค์รายชื่อสมาชิกในห้อง                    |
+| `GET`    | `/api/rooms/:id/members`         | ดูรายชื่อสมาชิกทั้งหมดในห้อง                       |
+| `DELETE` | `/api/rooms/:id/members/:userId` | ลบผู้ใช้ออกจากห้อง                                 |
+| `POST`   | `/api/rooms/:id/generate-bills`  | กดสั่งสร้างบิลของห้องในเดือนที่ระบุ (Manager Only) |
 
 **Example `POST /api/rooms`:**
+
 - **Body:**
   ```json
   {
@@ -143,6 +154,7 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   ```
 
 **Example `PATCH /api/rooms/:id`:**
+
 - **Body:**
   ```json
   {
@@ -155,6 +167,7 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   ```
 
 **Example `POST /api/rooms/:id/generate-bills`:**
+
 - **Body:**
   ```json
   {
@@ -179,15 +192,17 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 5. Expenses API (`/api/expenses`)
+
 การจัดการรายจ่าย / รายการใช้จ่ายของกองกลาง
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/expenses` | สร้างรายการใช้จ่ายใหม่ |
-| `GET` | `/api/expenses/:id` | ดึงข้อมูลรายการใช้จ่ายตาม ID |
-| `GET` | `/api/expenses/room/:roomId` | ดึงรายการใช้จ่ายทั้งหมดของห้อง |
+| Method | Endpoint                     | Description                    |
+| :----- | :--------------------------- | :----------------------------- |
+| `POST` | `/api/expenses`              | สร้างรายการใช้จ่ายใหม่         |
+| `GET`  | `/api/expenses/:id`          | ดึงข้อมูลรายการใช้จ่ายตาม ID   |
+| `GET`  | `/api/expenses/room/:roomId` | ดึงรายการใช้จ่ายทั้งหมดของห้อง |
 
 **Example `POST /api/expenses`:**
+
 - **Body:**
   ```json
   {
@@ -212,17 +227,19 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 6. Bills API (`/api/bills`)
+
 การจัดการบิลรายบุคคลที่ต้องจ่ายของแต่ละคน
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/bills/generate` | สร้างบิลเรียกเก็บเงินให้สมาชิก (รายเดือน) |
-| `GET` | `/api/bills/room/:roomId` | ดูบิลในห้อง (รองรับ Query `?userId=xxx`) |
-| `GET` | `/api/bills/user/:userId` | ดึงบิลของผู้ใช้ (ทุกห้อง) |
-| `GET` | `/api/bills/:id` | ดึงข้อมูลรายละเอียดบิลตาม ID |
-| `PATCH` | `/api/bills/:id/status` | อัปเดตสถานะบิล |
+| Method  | Endpoint                  | Description                               |
+| :------ | :------------------------ | :---------------------------------------- |
+| `POST`  | `/api/bills/generate`     | สร้างบิลเรียกเก็บเงินให้สมาชิก (รายเดือน) |
+| `GET`   | `/api/bills/room/:roomId` | ดูบิลในห้อง (รองรับ Query `?lineUid=xxx`, `?userId=xxx`, `?limit=10`)  |
+| `GET`   | `/api/bills/user/:userId` | ดึงบิลของผู้ใช้ (ทุกห้อง)                 |
+| `GET`   | `/api/bills/:id`          | ดึงข้อมูลรายละเอียดบิลตาม ID              |
+| `PATCH` | `/api/bills/:id/status`   | อัปเดตสถานะบิล                            |
 
 **Example `POST /api/bills/generate`:**
+
 - **Body:**
   ```json
   {
@@ -246,6 +263,7 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   ```
 
 **Example `PATCH /api/bills/:id/status`:**
+
 - **Body:**
   ```json
   {
@@ -256,22 +274,25 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 7. Payments API (`/api/payments`)
+
 การจัดการส่งสลิปโอนเงินและการชำระเงิน
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/payments/initiate` | เริ่มการชำระเงินเพื่อส่งสลิป |
-| `PATCH` | `/api/payments/:id/approve` | อนุมัติการชำระเงิน |
-| `PATCH` | `/api/payments/:id/reject` | ปฏิเสธการชำระเงิน |
-| `GET` | `/api/payments/room/:roomId/pending` | ดูรายการชำระเงินที่รอตรวจสอบ |
-| `GET` | `/api/payments/room/:roomId/history` | ดูประวัติจ่าย (รองรับ Query `?userId=xxx`) |
+| Method  | Endpoint                             | Description                                |
+| :------ | :----------------------------------- | :----------------------------------------- |
+| `POST`  | `/api/payments/initiate`             | เริ่มการชำระเงินเพื่อส่งสลิป               |
+| `PATCH` | `/api/payments/:id/approve`          | อนุมัติการชำระเงิน                         |
+| `PATCH` | `/api/payments/:id/reject`           | ปฏิเสธการชำระเงิน                          |
+| `GET`   | `/api/payments/room/:roomId/pending` | ดูรายการชำระเงินที่รอตรวจสอบ               |
+| `GET`   | `/api/payments/room/:roomId/history` | ดูประวัติจ่าย (รองรับ Query `?userId=xxx`) |
 
 **Example `POST /api/payments/initiate`:**
+
 - **Body:**
   ```json
   {
     "lineUid": "U12345",
-    "roomId": "room-uuid"
+    "roomId": "room-uuid",
+    "amount": 500
   }
   ```
 - **Response:**
@@ -283,12 +304,14 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
       "id": "payment-uuid",
       "status": "AWAITING_SLIP",
       "roomId": "room-uuid",
-      "lineUid": "U12345"
+      "lineUid": "U12345",
+      "amount": 500
     }
   }
   ```
 
 **Example Response (`GET /api/payments/room/:roomId/history?userId=xxx`):**
+
 ```json
 {
   "success": true,
@@ -296,17 +319,12 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   "data": [
     {
       "id": "payment-uuid",
-      "periodId": "period-uuid",
       "roomId": "room-uuid",
       "lineUid": "U12345",
       "slipUrl": "https://...",
+      "amount": 500,
       "status": "APPROVED",
-      "createdAt": "2026-06-20T01:30:00.000Z",
-      "period": {
-        "id": "period-uuid",
-        "name": "งวดที่ 1 (แรกเข้า)",
-        "amount": 500
-      }
+      "createdAt": "2026-06-20T01:30:00.000Z"
     }
   ]
 }
@@ -315,16 +333,18 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 ---
 
 ## 7. Subscriptions API (`/api/subscriptions`)
+
 การจัดการต่ออายุห้องและรับชำระค่าบริการผ่าน Stripe (PromptPay QR)
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/subscriptions/checkout` | ขอ QR Code สำหรับต่ออายุห้อง (ใช้ Stripe Payment Intents) |
-| `GET` | `/api/subscriptions/room/:roomId` | ดูประวัติการชำระค่าต่ออายุของห้อง |
-| `GET` | `/api/subscriptions/success` | หน้าแสดงผลชำระเงินสำเร็จ (Redirect URL) |
-| `GET` | `/api/subscriptions/cancel` | หน้าแสดงผลชำระเงินไม่สำเร็จ/ยกเลิก (ถ้ามี) |
+| Method | Endpoint                          | Description                                               |
+| :----- | :-------------------------------- | :-------------------------------------------------------- |
+| `POST` | `/api/subscriptions/checkout`     | ขอ QR Code สำหรับต่ออายุห้อง (ใช้ Stripe Payment Intents) |
+| `GET`  | `/api/subscriptions/room/:roomId` | ดูประวัติการชำระค่าต่ออายุของห้อง                         |
+| `GET`  | `/api/subscriptions/success`      | หน้าแสดงผลชำระเงินสำเร็จ (Redirect URL)                   |
+| `GET`  | `/api/subscriptions/cancel`       | หน้าแสดงผลชำระเงินไม่สำเร็จ/ยกเลิก (ถ้ามี)                |
 
 **Example `POST /api/subscriptions/checkout`:**
+
 - **Body:**
   ```json
   {
@@ -346,6 +366,7 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
   ```
 
 **Example Response (`GET /api/subscriptions/room/:roomId`):**
+
 ```json
 {
   "success": true,

@@ -4,11 +4,11 @@ const prisma = new PrismaClient();
 async function main() {
   const rooms = await prisma.room.findMany({
     include: {
-      periods: true,
-      bills: true
+      bills: true,
+      payments: true
     }
   });
-  console.log(rooms.map(r => ({ id: r.id, name: r.name, periods: r.periods.length, bills: r.bills.length })));
+  console.log(rooms.map(r => ({ id: r.id, name: r.name, bills: r.bills.length, payments: r.payments.length })));
 }
 
 main().finally(() => prisma.$disconnect());
