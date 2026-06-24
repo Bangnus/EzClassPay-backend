@@ -35,6 +35,7 @@ export async function syncUser({ line_uid, name, profile_url, action }) {
         displayName: user.displayName,
         pictureUrl: user.pictureUrl,
         role: user.role,
+        activeRoomId: user.activeRoomId,
       };
     }
   }
@@ -51,6 +52,7 @@ export async function syncUser({ line_uid, name, profile_url, action }) {
     displayName: user.displayName,
     pictureUrl: user.pictureUrl,
     role: user.role,
+    activeRoomId: user.activeRoomId,
   };
 }
 

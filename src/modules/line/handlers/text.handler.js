@@ -20,7 +20,7 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
     });
 
     const pendingPayment = await prisma.payment.findFirst({
-      where: { roomId: room.id, lineUid: userId, status: 'AWAITING_SLIP' }
+      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } }
     });
 
     items = bills.map(b => ({
@@ -49,7 +49,7 @@ export async function buildPeriodsCarouselMessage(room, userId, prisma) {
         name: p.name,
         amount: p.amount,
         isPaid: payment && payment.status === 'APPROVED',
-        isPending: payment && payment.status === 'AWAITING_SLIP'
+        isPending: payment && ['AWAITING_SLIP', 'PENDING'].includes(payment.status)
       };
     });
   }

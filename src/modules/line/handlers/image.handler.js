@@ -43,106 +43,100 @@ export async function handleImage(event, lineClient, blobClient) {
 
     const userProfile = await lineClient.getProfile(userId);
     const roomName = pendingPayment.room?.name || "";
-    const roomGroupId = pendingPayment.room?.lineGroupId;
 
-    if (roomGroupId) {
-      try {
-        await lineClient.pushMessage({
-          to: roomGroupId,
-          messages: [
-            {
-              type: "flex",
-              altText: `📄 มีสลิปใหม่จาก ${userProfile.displayName}`,
-              contents: {
-                type: "bubble",
-                header: {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "📄 สลิปใหม่รอตรวจสอบ",
-                      weight: "bold",
-                      size: "xl",
-                      color: "#ea580c",
-                      align: "center",
+    try {
+      await lineClient.pushMessage({
+        to: userId,
+        messages: [
+          {
+            type: "flex",
+            altText: `📄 สลิปของคุณรอตรวจสอบ`,
+            contents: {
+              type: "bubble",
+              size: "micro",
+              header: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: "📄 สลิปใหม่รอตรวจสอบ",
+                    weight: "bold",
+                    size: "xs",
+                    color: "#ea580c",
+                    align: "center",
+                  },
+                ],
+              },
+              body: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                paddingAll: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: roomName,
+                    weight: "bold",
+                    size: "md",
+                    color: "#111827",
+                    wrap: true,
+                    align: "center",
+                  },
+                  { type: "separator" },
+                  {
+                    type: "box",
+                    layout: "baseline",
+                    spacing: "xs",
+                    contents: [
+                      { type: "text", text: "ผู้โอน", weight: "bold", size: "xxs", flex: 1, color: "#6b7280" },
+                      { type: "text", text: userProfile.displayName, size: "xxs", flex: 3, color: "#111827", wrap: true },
+                    ],
+                  },
+                  {
+                    type: "box",
+                    layout: "baseline",
+                    spacing: "xs",
+                    contents: [
+                      { type: "text", text: "สถานะ", weight: "bold", size: "xxs", flex: 1, color: "#6b7280" },
+                      { type: "text", text: "รอตรวจสอบ", size: "xxs", flex: 3, color: "#ea580c", weight: "bold" },
+                    ],
+                  },
+                  { type: "separator" },
+                  {
+                    type: "text",
+                    text: "กรุณาตรวจสอบสลิปและยืนยันการชำระเงิน 🙏",
+                    size: "xxs",
+                    color: "#9ca3af",
+                    wrap: true,
+                  },
+                ],
+              },
+              footer: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                paddingAll: "sm",
+                contents: [
+                  {
+                    type: "button",
+                    action: {
+                      type: "uri",
+                      label: "ตรวจสอบและอนุมัติ",
+                      uri: `https://liff.line.me/${process.env.LIFF_ID_APPROVE}?roomId=${pendingPayment.room.id}&lineGroupId=${pendingPayment.room.lineGroupId}`,
                     },
-                  ],
-                },
-                hero: {
-                  type: "box",
-                  layout: "vertical",
-                  paddingAll: "md",
-                  contents: [
-                    {
-                      type: "text",
-                      text: roomName,
-                      weight: "bold",
-                      size: "xxl",
-                      color: "#111827",
-                      wrap: true,
-                      align: "center",
-                    },
-                  ],
-                },
-                body: {
-                  type: "box",
-                  layout: "vertical",
-                  spacing: "md",
-                  contents: [
-                    { type: "separator" },
-                    {
-                      type: "box",
-                      layout: "baseline",
-                      spacing: "sm",
-                      contents: [
-                        { type: "text", text: "ผู้โอน", weight: "bold", size: "sm", flex: 1, color: "#6b7280" },
-                        { type: "text", text: userProfile.displayName, size: "sm", flex: 3, color: "#111827", wrap: true },
-                      ],
-                    },
-                    {
-                      type: "box",
-                      layout: "baseline",
-                      spacing: "sm",
-                      contents: [
-                        { type: "text", text: "สถานะ", weight: "bold", size: "sm", flex: 1, color: "#6b7280" },
-                        { type: "text", text: "รอตรวจสอบ", size: "sm", flex: 3, color: "#ea580c", weight: "bold" },
-                      ],
-                    },
-                    { type: "separator" },
-                    {
-                      type: "text",
-                      text: "กรุณาตรวจสอบสลิปและยืนยันการชำระเงิน 🙏",
-                      size: "xs",
-                      color: "#9ca3af",
-                      wrap: true,
-                    },
-                  ],
-                },
-                footer: {
-                  type: "box",
-                  layout: "vertical",
-                  spacing: "sm",
-                  contents: [
-                    {
-                      type: "button",
-                      action: {
-                        type: "uri",
-                        label: "🔍 ตรวจสอบและอนุมัติ",
-                        uri: `https://liff.line.me/${process.env.LIFF_ID_APPROVE}?roomId=${pendingPayment.room.id}`,
-                      },
-                      style: "primary",
-                      color: "#ea580c",
-                    },
-                  ],
-                },
+                    style: "primary",
+                    color: "#ea580c",
+                    height: "sm",
+                  },
+                ],
               },
             },
-          ],
-        });
-      } catch (e) {
-        console.error("Failed to send group notification:", e.message);
-      }
+          },
+        ],
+      });
+    } catch (e) {
+      console.error("Failed to send private notification:", e.message);
     }
 
     return lineClient.replyMessage({
