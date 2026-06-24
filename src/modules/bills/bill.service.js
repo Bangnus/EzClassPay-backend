@@ -216,14 +216,14 @@ async function sendBillNotification(user, bill) {
         type: "box",
         layout: "vertical",
         backgroundColor: "#ea580c",
-        paddingTop: "16px",
-        paddingBottom: "16px",
+        paddingTop: "12px",
+        paddingBottom: "12px",
         contents: [
           {
             type: "text",
-            text: "📢 แจ้งยอดชำระประจำเดือน",
+            text: "📢 แจ้งยอดชำระ",
             weight: "bold",
-            size: "lg",
+            size: "md",
             color: "#ffffff",
             align: "center",
           },
@@ -232,27 +232,22 @@ async function sendBillNotification(user, bill) {
       body: {
         type: "box",
         layout: "vertical",
-        paddingAll: "xl",
+        paddingAll: "lg",
         contents: [
           {
             type: "text",
             text: bill.roomName,
             weight: "bold",
-            size: "xl",
+            size: "md",
             color: "#111827",
             wrap: true,
             align: "center",
           },
           {
-            type: "separator",
-            margin: "xl",
-            color: "#e5e7eb",
-          },
-          {
             type: "box",
             layout: "vertical",
-            margin: "xl",
-            spacing: "md",
+            margin: "lg",
+            spacing: "sm",
             contents: [
               {
                 type: "box",
@@ -261,14 +256,14 @@ async function sendBillNotification(user, bill) {
                   {
                     type: "text",
                     text: "รอบเดือน",
-                    size: "md",
+                    size: "sm",
                     color: "#6b7280",
                     flex: 0,
                   },
                   {
                     type: "text",
                     text: bill.month,
-                    size: "md",
+                    size: "sm",
                     color: "#111827",
                     weight: "bold",
                     align: "end",
@@ -283,14 +278,14 @@ async function sendBillNotification(user, bill) {
                   {
                     type: "text",
                     text: "ยอดที่ต้องจ่าย",
-                    size: "md",
+                    size: "sm",
                     color: "#6b7280",
                     flex: 0,
                   },
                   {
                     type: "text",
                     text: `฿${Number(bill.amount).toLocaleString()}`,
-                    size: "lg",
+                    size: "md",
                     color: "#dc2626",
                     weight: "bold",
                     align: "end",
@@ -301,17 +296,12 @@ async function sendBillNotification(user, bill) {
             ],
           },
           {
-            type: "separator",
-            margin: "xl",
-            color: "#e5e7eb",
-          },
-          {
             type: "text",
-            text: "กรุณาชำระเงินตามยอดที่แจ้งและส่งสลิปผ่าน LINE OA เพื่อยืนยันการชำระเงิน 🙏",
+            text: "ส่งสลิปยืนยันการชำระผ่าน LINE OA",
             size: "xs",
             color: "#9ca3af",
             wrap: true,
-            margin: "lg",
+            margin: "md",
             align: "center",
           },
         ],
@@ -319,7 +309,7 @@ async function sendBillNotification(user, bill) {
       footer: {
         type: "box",
         layout: "vertical",
-        paddingAll: "lg",
+        paddingAll: "md",
         contents: [
           {
             type: "button",
@@ -353,14 +343,14 @@ async function sendGroupBillNotification(room, bill) {
         type: "box",
         layout: "vertical",
         backgroundColor: "#ea580c",
-        paddingTop: "16px",
-        paddingBottom: "16px",
+        paddingTop: "12px",
+        paddingBottom: "12px",
         contents: [
           {
             type: "text",
-            text: "📢 แจ้งยอดชำระประจำเดือน",
+            text: "📢 แจ้งยอดชำระ",
             weight: "bold",
-            size: "lg",
+            size: "md",
             color: "#ffffff",
             align: "center",
           },
@@ -369,27 +359,22 @@ async function sendGroupBillNotification(room, bill) {
       body: {
         type: "box",
         layout: "vertical",
-        paddingAll: "xl",
+        paddingAll: "lg",
         contents: [
           {
             type: "text",
             text: room.name,
             weight: "bold",
-            size: "xl",
+            size: "md",
             color: "#111827",
             wrap: true,
             align: "center",
           },
           {
-            type: "separator",
-            margin: "xl",
-            color: "#e5e7eb",
-          },
-          {
             type: "box",
             layout: "vertical",
-            margin: "xl",
-            spacing: "md",
+            margin: "lg",
+            spacing: "sm",
             contents: [
               {
                 type: "box",
@@ -398,14 +383,14 @@ async function sendGroupBillNotification(room, bill) {
                   {
                     type: "text",
                     text: "รอบเดือน",
-                    size: "md",
+                    size: "sm",
                     color: "#6b7280",
                     flex: 0,
                   },
                   {
                     type: "text",
                     text: bill.month,
-                    size: "md",
+                    size: "sm",
                     color: "#111827",
                     weight: "bold",
                     align: "end",
@@ -420,14 +405,14 @@ async function sendGroupBillNotification(room, bill) {
                   {
                     type: "text",
                     text: "ยอดที่ต้องจ่าย",
-                    size: "md",
+                    size: "sm",
                     color: "#6b7280",
                     flex: 0,
                   },
                   {
                     type: "text",
                     text: `฿${Number(bill.amount).toLocaleString()}`,
-                    size: "lg",
+                    size: "md",
                     color: "#dc2626",
                     weight: "bold",
                     align: "end",
@@ -438,17 +423,12 @@ async function sendGroupBillNotification(room, bill) {
             ],
           },
           {
-            type: "separator",
-            margin: "xl",
-            color: "#e5e7eb",
-          },
-          {
             type: "text",
-            text: "ระบบได้แจ้งเตือนไปยังสมาชิกทุกคนในแชทส่วนตัวแล้ว กรุณาชำระเงินตามกำหนด 🙏",
+            text: "แจ้งเตือนสมาชิกทุกคนในแชทส่วนตัวแล้ว",
             size: "xs",
             color: "#9ca3af",
             wrap: true,
-            margin: "lg",
+            margin: "md",
             align: "center",
           },
         ],
