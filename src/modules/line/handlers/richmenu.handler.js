@@ -136,7 +136,7 @@ export async function handleShowRooms(event, lineClient) {
     const roleText = isManager ? LABEL_ROLE_MANAGER : LABEL_ROLE_MEMBER;
     
     // Premium locked logic
-    const isLocked = room.isPremium === true;
+    const isLocked = !room.isPremium;
 
     // Use theme colors
     const roleBadgeColor = isManager ? '#00c6ae' : '#e5e7eb';

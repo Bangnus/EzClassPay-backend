@@ -29,7 +29,7 @@ async function warnExpiringRooms(now) {
   // Rooms that expire between 1-3 days from now and are NOT yet locked
   const rooms = await prisma.room.findMany({
     where: {
-      isPremium: false,
+      isPremium: true,
       expiresAt: {
         gte: oneDayFromNow,
         lte: threeDaysFromNow,
@@ -150,7 +150,7 @@ async function warnExpiringRooms(now) {
 async function lockExpiredRooms(now) {
   const rooms = await prisma.room.findMany({
     where: {
-      isPremium: false,
+      isPremium: true,
       expiresAt: {
         lte: now,
         not: null,
@@ -165,7 +165,7 @@ async function lockExpiredRooms(now) {
     // Lock the room
     await prisma.room.update({
       where: { id: room.id },
-      data: { isPremium: true },
+      data: { isPremium: false },
     });
 
     logger.info(`[SubscriptionCron] Locked room "${room.name}" (expired at ${room.expiresAt.toISOString()})`);

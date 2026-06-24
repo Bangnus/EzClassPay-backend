@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { constructEvent, handlePaymentIntentSucceeded } from "./subscription.service.js";
+import { constructEvent, handlePaymentIntentSucceeded, handlePaymentIntentFailed } from "./subscription.service.js";
 import { logger } from "../../utils/logger.js";
 
 const router = Router();
@@ -28,6 +28,11 @@ router.post("/", async (req, res) => {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object;
         await handlePaymentIntentSucceeded(paymentIntent);
+        break;
+      }
+      case "payment_intent.payment_failed": {
+        const failedIntent = event.data.object;
+        await handlePaymentIntentFailed(failedIntent);
         break;
       }
       default:

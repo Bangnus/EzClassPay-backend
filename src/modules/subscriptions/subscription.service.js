@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import crypto from "crypto";
 import prisma from "../../config/database.js";
 import { lineClient } from "../line/line.service.js";
 import { logger } from "../../utils/logger.js";
@@ -68,6 +69,10 @@ export async function createPromptPayIntent(roomId, managerId) {
   }
 
   // 2. ถ้าไม่มีรายการเดิม หรือรายการเดิมหมดอายุแล้ว -> สร้าง PaymentIntent ใหม่
+  const idempotencyKey = existingSub
+    ? `sub_renew_${existingSub.id}_${Date.now()}`
+    : `sub_create_${room.id}_${manager.id}_${crypto.randomUUID()}`;
+
   const paymentIntent = await stripe.paymentIntents.create({
     amount: priceAmount,
     currency: "thb",
@@ -84,8 +89,8 @@ export async function createPromptPayIntent(roomId, managerId) {
       managerId: manager.id,
       planDays: String(PLAN_DAYS),
     },
-    return_url: `${process.env.PUBLIC_API_URL || "https://example.com"}/api/subscriptions/success`,
-  });
+    return_url: `${process.env.PUBLIC_API_URL || process.env.PUBLIC_URL || "https://example.com"}/api/subscriptions/success`,
+  }, { idempotencyKey });
 
   const qrCodeUrl = paymentIntent.next_action?.promptpay_display_qr_code?.image_url_png;
   const hostedInstructionsUrl = paymentIntent.next_action?.promptpay_display_qr_code?.hosted_instructions_url;
@@ -167,7 +172,7 @@ export async function handlePaymentIntentSucceeded(paymentIntent) {
   await prisma.room.update({
     where: { id: roomId },
     data: {
-      isPremium: false,
+      isPremium: true,
       expiresAt: newExpiry,
     },
   });
@@ -248,6 +253,32 @@ export async function handlePaymentIntentSucceeded(paymentIntent) {
   }
 
   logger.info(`[Stripe] Room "${room.name}" unlocked until ${newExpiry.toISOString()}`);
+}
+
+// ─── Handle Stripe Webhook: payment_intent.payment_failed ────────
+export async function handlePaymentIntentFailed(paymentIntent) {
+  const subscription = await prisma.subscription.findUnique({
+    where: { stripeIntentId: paymentIntent.id },
+  });
+
+  if (!subscription) {
+    logger.warn(`[Stripe] No subscription found for failed intent ${paymentIntent.id}`);
+    return;
+  }
+
+  if (subscription.status !== "PENDING") {
+    logger.info(`[Stripe] Subscription ${subscription.id} already ${subscription.status}, skipping failure handling`);
+    return;
+  }
+
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: {
+      status: "EXPIRED",
+    },
+  });
+
+  logger.info(`[Stripe] Subscription ${subscription.id} marked as EXPIRED due to payment failure`);
 }
 
 // ─── Get subscription history for a room ─────────────────────────

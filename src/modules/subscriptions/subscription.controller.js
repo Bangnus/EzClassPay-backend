@@ -18,7 +18,7 @@ export async function createCheckout(req, res, next) {
       return error(res, "User not found", STATUS_CODE.NOT_FOUND);
     }
 
-    const result = await subscriptionService.createCheckoutSession(roomId, user.id);
+    const result = await subscriptionService.createPromptPayIntent(roomId, user.id);
     return success(res, result, "Checkout session created");
   } catch (err) {
     next(err);
