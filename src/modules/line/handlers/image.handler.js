@@ -48,7 +48,7 @@ export async function handleImage(event, lineClient, blobClient) {
         qrNote = `⚠️ สแกน QR ยอดเงินไม่ตรง (สลิป: ${extractedAmount}, บิล: ${pendingPayment.amount})`;
       }
     } else {
-      qrNote = `⚠️ สแกน QR ได้แต่ไม่พบยอดเงิน`;
+      qrNote = `⚠️ สแกน QR ได้แต่ไม่พบยอดเงิน (Raw: ${qrResult.data.substring(0, 30)}...)`;
     }
 
     const slipUrl = await uploadToS3(
