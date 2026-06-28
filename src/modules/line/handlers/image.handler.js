@@ -2,6 +2,7 @@ import prisma from "../../../config/database.js";
 import { uploadToS3 } from "../../../utils/s3.js";
 import { lineClient } from "../line.service.js";
 import { NO_PENDING_SLIP, slipSaved, SLIP_ERROR } from "../../../constants/messages.js";
+import { readQrFromImage } from "../../slips/slip.service.js";
 
 export async function handleImage(event, lineClient, blobClient) {
   const userId = event.source.userId;
@@ -28,6 +29,27 @@ export async function handleImage(event, lineClient, blobClient) {
     const chunks = [];
     for await (const chunk of stream) chunks.push(chunk);
     const buffer = Buffer.concat(chunks);
+
+    // 1. อ่าน QR Code ก่อนเพื่อตรวจสอบความถูกต้อง
+    const qrResult = await readQrFromImage(buffer);
+    if (!qrResult.success) {
+      return lineClient.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "❌ ไม่สามารถอ่าน QR Code จากรูปภาพได้ กรุณาส่งสลิปโอนเงินที่มี QR Code ที่ชัดเจนครับ" }]
+      });
+    }
+
+    const extractedAmount = qrResult.payload?.amount;
+    let qrNote = "";
+    if (extractedAmount) {
+      if (extractedAmount === pendingPayment.amount) {
+        qrNote = `✅ สแกน QR ยอดเงินตรงกัน (${extractedAmount} บาท)`;
+      } else {
+        qrNote = `⚠️ สแกน QR ยอดเงินไม่ตรง (สลิป: ${extractedAmount}, บิล: ${pendingPayment.amount})`;
+      }
+    } else {
+      qrNote = `⚠️ สแกน QR ได้แต่ไม่พบยอดเงิน`;
+    }
 
     const slipUrl = await uploadToS3(
       buffer,
@@ -109,6 +131,27 @@ export async function handleImage(event, lineClient, blobClient) {
                     color: "#9ca3af",
                     wrap: true,
                   },
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    margin: "sm",
+                    contents: [
+                      {
+                        type: "text",
+                        text: "ระบบแสกนสแกน QR Code:",
+                        size: "sm",
+                        color: "#6b7280",
+                      },
+                      {
+                        type: "text",
+                        text: qrNote,
+                        size: "xs",
+                        color: qrNote.includes("✅") ? "#16a34a" : "#ea580c",
+                        wrap: true,
+                        margin: "xs",
+                      }
+                    ]
+                  }
                 ],
               },
               footer: {
