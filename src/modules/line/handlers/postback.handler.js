@@ -312,8 +312,16 @@ export async function handlePostback(event, lineClient) {
       }
 
       const existing = await prisma.payment.findFirst({
-        where: { roomId: room.id, lineUid: event.source.userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } }
+        where: { roomId: room.id, lineUid: event.source.userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } },
+        orderBy: { createdAt: 'desc' }
       });
+
+      if (existing && existing.status === 'PENDING') {
+        return lineClient.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: 'คุณได้ส่งสลิปชำระเงินแล้ว สถานะกำลังรอการตรวจสอบจากผู้ดูแลครับ' }]
+        });
+      }
 
       if (!existing) {
         await prisma.payment.create({
@@ -345,8 +353,24 @@ export async function handlePostback(event, lineClient) {
       }
 
       const existing = await prisma.payment.findFirst({
-        where: { billId: bill.id, lineUid: event.source.userId, status: 'AWAITING_SLIP' }
+        where: { billId: bill.id, lineUid: event.source.userId, status: { in: ['AWAITING_SLIP', 'PENDING', 'APPROVED'] } },
+        orderBy: { createdAt: 'desc' }
       });
+
+      if (existing) {
+        if (existing.status === 'PENDING') {
+          return lineClient.replyMessage({
+            replyToken: event.replyToken,
+            messages: [{ type: 'text', text: 'คุณได้ส่งสลิปชำระเงินสำหรับงวดนี้แล้ว สถานะกำลังรอการตรวจสอบจากผู้ดูแลครับ' }]
+          });
+        }
+        if (existing.status === 'APPROVED') {
+          return lineClient.replyMessage({
+            replyToken: event.replyToken,
+            messages: [{ type: 'text', text: 'งวดนี้ได้รับการอนุมัติการชำระเงินเรียบร้อยแล้วครับ' }]
+          });
+        }
+      }
 
       if (!existing) {
         await prisma.payment.create({

@@ -22,7 +22,7 @@ export function findById(id) {
     include: {
       bill: { select: { id: true, month: true, year: true, status: true } },
       room: { select: { id: true, name: true, lineGroupId: true, promptpayNo: true } },
-      user: { select: { id: true, displayName: true, lineUid: true } },
+      user: { select: { id: true, displayName: true, lineUid: true, pictureUrl: true } },
     },
   });
 }
@@ -36,7 +36,7 @@ export function findByRoom(roomId, options = {}) {
   return prisma.payment.findMany({
     where,
     include: {
-      user: { select: { id: true, displayName: true, lineUid: true } },
+      user: { select: { id: true, displayName: true, lineUid: true, pictureUrl: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -46,7 +46,7 @@ export function findPendingByRoom(roomId) {
   return prisma.payment.findMany({
     where: { roomId, status: "PENDING" },
     include: {
-      user: { select: { id: true, displayName: true, lineUid: true } },
+      user: { select: { id: true, displayName: true, lineUid: true, pictureUrl: true } },
       room: { select: { name: true, lineGroupId: true } },
     },
     orderBy: { createdAt: "desc" },

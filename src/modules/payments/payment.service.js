@@ -1,14 +1,45 @@
 import * as paymentRepo from "./payment.repository.js";
 import * as billRepo from "../bills/bill.repository.js";
 import { lineClient } from "../line/line.service.js";
+import prisma from "../../config/database.js";
 
-export async function initiatePayment({ lineUid, roomId, amount }) {
-  const payment = await paymentRepo.createPayment({
+export async function initiatePayment({ lineUid, roomId, amount, billId }) {
+  // Check for existing payment to prevent duplicates
+  const whereClause = billId
+    ? { billId, lineUid, status: { in: ["AWAITING_SLIP", "PENDING"] } }
+    : { roomId, billId: null, lineUid, status: { in: ["AWAITING_SLIP", "PENDING"] } };
+
+  const existing = await prisma.payment.findFirst({
+    where: whereClause,
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing) {
+    // Already has a pending payment, return the existing one
+    return existing;
+  }
+
+  // Also check if already approved
+  const approvedWhere = billId
+    ? { billId, lineUid, status: "APPROVED" }
+    : { roomId, billId: null, lineUid, status: "APPROVED" };
+
+  const approved = await prisma.payment.findFirst({ where: approvedWhere });
+  if (approved) {
+    const err = new Error("งวดนี้ได้รับการอนุมัติการชำระเงินเรียบร้อยแล้วครับ");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const paymentData = {
     lineUid,
     roomId,
     amount: amount || 0,
     status: "AWAITING_SLIP",
-  });
+  };
+  if (billId) paymentData.billId = billId;
+
+  const payment = await paymentRepo.createPayment(paymentData);
 
   try {
     const room = await paymentRepo.findRoomById(roomId);
@@ -95,9 +126,25 @@ export async function approvePayment(paymentId) {
 
   const updated = await paymentRepo.updateStatus(paymentId, "APPROVED");
 
+  // Update bill status to PAID
   try {
     if (payment.bill && payment.bill.status === "UNPAID") {
+      // Payment has billId linked directly
       await billRepo.updateBillStatus(payment.bill.id, "PAID");
+    } else if (!payment.bill && payment.room) {
+      // Payment created without billId (e.g. from LIFF) — find the matching unpaid bill
+      const user = await prisma.user.findUnique({ where: { lineUid: payment.user.lineUid } });
+      if (user) {
+        const unpaidBill = await prisma.bill.findFirst({
+          where: { roomId: payment.room.id, userId: user.id, status: "UNPAID" },
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+        });
+        if (unpaidBill) {
+          await billRepo.updateBillStatus(unpaidBill.id, "PAID");
+          // Also link the payment to the bill for future reference
+          await prisma.payment.update({ where: { id: paymentId }, data: { billId: unpaidBill.id } });
+        }
+      }
     }
   } catch (e) {
     console.error("Failed to update bill status:", e.message);

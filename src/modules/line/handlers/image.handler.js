@@ -52,7 +52,7 @@ export async function handleImage(event, lineClient, blobClient) {
             altText: `📄 สลิปของคุณรอตรวจสอบ`,
             contents: {
               type: "bubble",
-              size: "micro",
+              size: "mega",
               header: {
                 type: "box",
                 layout: "vertical",
@@ -61,7 +61,7 @@ export async function handleImage(event, lineClient, blobClient) {
                     type: "text",
                     text: "📄 สลิปใหม่รอตรวจสอบ",
                     weight: "bold",
-                    size: "xs",
+                    size: "md",
                     color: "#ea580c",
                     align: "center",
                   },
@@ -77,7 +77,7 @@ export async function handleImage(event, lineClient, blobClient) {
                     type: "text",
                     text: roomName,
                     weight: "bold",
-                    size: "md",
+                    size: "xl",
                     color: "#111827",
                     wrap: true,
                     align: "center",
@@ -88,8 +88,8 @@ export async function handleImage(event, lineClient, blobClient) {
                     layout: "baseline",
                     spacing: "xs",
                     contents: [
-                      { type: "text", text: "ผู้โอน", weight: "bold", size: "xxs", flex: 1, color: "#6b7280" },
-                      { type: "text", text: userProfile.displayName, size: "xxs", flex: 3, color: "#111827", wrap: true },
+                      { type: "text", text: "ผู้โอน", weight: "bold", size: "sm", flex: 1, color: "#6b7280" },
+                      { type: "text", text: userProfile.displayName, size: "sm", flex: 3, color: "#111827", wrap: true },
                     ],
                   },
                   {
@@ -97,15 +97,15 @@ export async function handleImage(event, lineClient, blobClient) {
                     layout: "baseline",
                     spacing: "xs",
                     contents: [
-                      { type: "text", text: "สถานะ", weight: "bold", size: "xxs", flex: 1, color: "#6b7280" },
-                      { type: "text", text: "รอตรวจสอบ", size: "xxs", flex: 3, color: "#ea580c", weight: "bold" },
+                      { type: "text", text: "สถานะ", weight: "bold", size: "sm", flex: 1, color: "#6b7280" },
+                      { type: "text", text: "รอตรวจสอบ", size: "sm", flex: 3, color: "#ea580c", weight: "bold" },
                     ],
                   },
                   { type: "separator" },
                   {
                     type: "text",
                     text: "กรุณาตรวจสอบสลิปและยืนยันการชำระเงิน 🙏",
-                    size: "xxs",
+                    size: "sm",
                     color: "#9ca3af",
                     wrap: true,
                   },
@@ -122,7 +122,7 @@ export async function handleImage(event, lineClient, blobClient) {
                     action: {
                       type: "uri",
                       label: "ตรวจสอบและอนุมัติ",
-                      uri: `https://liff.line.me/${process.env.LIFF_ID_APPROVE}?roomId=${pendingPayment.room.id}&lineGroupId=${pendingPayment.room.lineGroupId}`,
+                      uri: `https://liff.line.me/${process.env.LIFF_ID_VERIFY_SLIP}?roomId=${pendingPayment.room.id}&lineGroupId=${pendingPayment.room.lineGroupId}`,
                     },
                     style: "primary",
                     color: "#ea580c",

@@ -20,32 +20,40 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
     });
 
     const pendingPayments = await prisma.payment.findMany({
-      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } },
-      select: { billId: true, status: true }
+      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING', 'APPROVED'] } },
+      select: { billId: true, status: true },
+      orderBy: { createdAt: 'desc' }
     });
     const paymentByBillId = {};
+    // Payments that have billId linked
     for (const p of pendingPayments) {
-      if (p.billId) paymentByBillId[p.billId] = p.status;
+      if (p.billId && !paymentByBillId[p.billId]) paymentByBillId[p.billId] = p.status;
     }
+    // Payments without billId (from LIFF) — use the latest status as fallback
+    const noBillPayment = pendingPayments.find(p => !p.billId);
 
-    items = bills.map(b => ({
-      id: b.id,
-      type: 'bill',
-      name: `บิลเดือน ${b.month}/${b.year}`,
-      amount: b.amount,
-      isPaid: b.status === 'PAID',
-      paymentStatus: b.status === 'UNPAID' ? (paymentByBillId[b.id] || null) : null
-    }));
+    items = bills.map(b => {
+      let pStatus = paymentByBillId[b.id] || null;
+      // If no direct bill link found, fall back to the unlinked payment status
+      if (!pStatus && noBillPayment && b.status === 'UNPAID') {
+        pStatus = noBillPayment.status;
+      }
+      return {
+        id: b.id,
+        type: 'bill',
+        name: `บิลเดือน ${b.month}/${b.year}`,
+        amount: b.amount,
+        isPaid: b.status === 'PAID' || pStatus === 'APPROVED',
+        paymentStatus: (b.status === 'UNPAID' && pStatus !== 'APPROVED') ? pStatus : null
+      };
+    });
   } else {
     const user = await prisma.user.findUnique({ where: { lineUid: userId } });
     if (!user) return null;
 
-    const approvedPayment = await prisma.payment.findFirst({
-      where: { roomId: room.id, lineUid: userId, status: 'APPROVED' }
-    });
-
-    const pendingPayment = await prisma.payment.findFirst({
-      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING'] } }
+    const allPayment = await prisma.payment.findFirst({
+      where: { roomId: room.id, lineUid: userId, status: { in: ['AWAITING_SLIP', 'PENDING', 'APPROVED'] } },
+      orderBy: { createdAt: 'desc' }
     });
 
     items = [{
@@ -53,8 +61,8 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
       type: 'target',
       name: 'เป้าหมายรวม',
       amount: room.totalTargetAmount || 0,
-      isPaid: !!approvedPayment,
-      paymentStatus: pendingPayment ? pendingPayment.status : null
+      isPaid: allPayment?.status === 'APPROVED',
+      paymentStatus: allPayment?.status !== 'APPROVED' ? allPayment?.status : null
     }];
   }
 
@@ -78,11 +86,11 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
       action = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' };
     } else if (item.paymentStatus === 'PENDING') {
       buttonColor = '#ea580c';
-      buttonLabel = '⏳ รอตรวจสอบสลิป';
+      buttonLabel = '⏳ รอตรวจสลิป';
       action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
     } else if (item.paymentStatus === 'AWAITING_SLIP') {
       buttonColor = '#f59e0b';
-      buttonLabel = '⏳ รอตรวจสอบ';
+      buttonLabel = '⏳ รอส่งสลิป';
       action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
     }
 

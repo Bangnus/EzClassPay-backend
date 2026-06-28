@@ -4,11 +4,11 @@ import { STATUS_CODE } from "../../constants/statusCode.js";
 
 export async function initiate(req, res, next) {
   try {
-    const { lineUid, roomId, amount } = req.body;
+    const { lineUid, roomId, amount, billId } = req.body;
     if (!lineUid || !roomId) {
       return error(res, "lineUid and roomId are required", STATUS_CODE.UNPROCESSABLE);
     }
-    const payment = await paymentService.initiatePayment({ lineUid, roomId, amount });
+    const payment = await paymentService.initiatePayment({ lineUid, roomId, amount, billId });
     return success(res, payment, "Payment initiated", 201);
   } catch (err) {
     next(err);
