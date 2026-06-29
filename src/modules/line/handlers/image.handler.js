@@ -12,7 +12,7 @@ export async function handleImage(event, lineClient, blobClient) {
     orderBy: { createdAt: "desc" },
     include: {
       room: {
-        select: { id: true, name: true, lineGroupId: true, promptpayNo: true },
+        select: { id: true, name: true, lineGroupId: true, promptpayNo: true, manager: { select: { lineUid: true } } },
       },
     },
   });
@@ -67,7 +67,7 @@ export async function handleImage(event, lineClient, blobClient) {
 
     try {
       await lineClient.pushMessage({
-        to: userId,
+        to: pendingPayment.room.manager.lineUid,
         messages: [
           {
             type: "flex",

@@ -6,6 +6,7 @@ import { handlePostback } from "./handlers/postback.handler.js";
 import { handleImage } from "./handlers/image.handler.js";
 import { handleText } from "./handlers/text.handler.js";
 import { handleBotJoin, handleMemberJoined } from "./handlers/join.handler.js";
+import { assignAllPastBillsToNewMember } from "../bills/bill.service.js";
 
 export const lineClient = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_ACCESS_TOKEN
@@ -36,11 +37,21 @@ export async function handleEvent(event) {
           where: { lineGroupId: event.source.groupId },
         });
         if (room) {
-          await prisma.roomMember.upsert({
+          const existingMember = await prisma.roomMember.findUnique({
             where: { roomId_userId: { roomId: room.id, userId: user.id } },
-            update: {},
-            create: { roomId: room.id, userId: user.id },
           });
+          if (!existingMember) {
+            await prisma.roomMember.create({
+              data: { roomId: room.id, userId: user.id },
+            });
+            if (room.collectionType === "MONTHLY") {
+              try {
+                await assignAllPastBillsToNewMember(room.id);
+              } catch (err) {
+                console.error('Failed to assign past bills:', err.message);
+              }
+            }
+          }
         }
       }
     } catch (e) {
