@@ -29,15 +29,8 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
     for (const p of pendingPayments) {
       if (p.billId && !paymentByBillId[p.billId]) paymentByBillId[p.billId] = p.status;
     }
-    // Payments without billId (from LIFF) — use the latest status as fallback
-    const noBillPayment = pendingPayments.find(p => !p.billId);
-
     items = bills.map(b => {
-      let pStatus = paymentByBillId[b.id] || null;
-      // If no direct bill link found, fall back to the unlinked payment status
-      if (!pStatus && noBillPayment && b.status === 'UNPAID') {
-        pStatus = noBillPayment.status;
-      }
+      const pStatus = paymentByBillId[b.id] || null;
       return {
         id: b.id,
         type: 'bill',
