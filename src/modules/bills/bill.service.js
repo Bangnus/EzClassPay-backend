@@ -197,11 +197,48 @@ export async function generateBillsForRoom(roomId, month, year) {
 }
 
 export async function assignAllPastBillsToNewMember(roomId) {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: {
+      members: {
+        include: { user: { select: { id: true, lineUid: true, displayName: true } } },
+      },
+    },
+  });
+
+  if (!room || !room.periodicAmount || room.members.length === 0) return;
+
   const allPeriods = await billRepo.findAllUniqueBillPeriodsByRoom(roomId);
-  if (allPeriods && allPeriods.length > 0) {
-    console.log(`[assignAllPastBills] Found ${allPeriods.length} bill periods for room ${roomId}, triggering generation for missing members.`);
-    for (const period of allPeriods) {
-      await generateBillsForRoom(roomId, period.month, period.year);
+  if (!allPeriods || allPeriods.length === 0) return;
+
+  const userNewBills = {}; // { userId: [bill1, bill2, ...] }
+
+  for (const period of allPeriods) {
+    const month = period.month;
+    const year = period.year;
+    const dueDate = new Date(year, month, 1);
+    const amount = room.periodicAmount;
+
+    const existingBills = await billRepo.findBillsByRoomAndMonth(roomId, month, year);
+    const existingUserIds = existingBills.map(b => b.userId);
+    const missingMembers = room.members.filter(m => !existingUserIds.includes(m.user.id));
+
+    if (missingMembers.length > 0) {
+      for (const member of missingMembers) {
+        const createdBill = await prisma.bill.create({
+          data: {
+            month,
+            year,
+            dueDate,
+            amount,
+            roomId,
+            userId: member.user.id,
+          },
+        });
+
+        if (!userNewBills[member.user.id]) userNewBills[member.user.id] = [];
+        userNewBills[member.user.id].push(createdBill);
+      }
     }
   }
 }

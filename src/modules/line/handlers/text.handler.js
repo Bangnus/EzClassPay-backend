@@ -70,7 +70,11 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
     return { type: 'text', text: "ยังไม่มีงวดชำระเงินในห้องนี้ครับ" };
   }
 
-  const bubbles = items.map(item => {
+  const maxItemsToShow = 4;
+  const isOverflow = items.length > maxItemsToShow;
+  const displayItems = isOverflow ? items.slice(0, maxItemsToShow) : items;
+
+  const bubbles = displayItems.map(item => {
     let buttonStyle = 'primary';
     let buttonColor = '#00c6ae';
     let buttonLabel = '💳 เลือกชำระงวดนี้';
@@ -167,6 +171,56 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
       }
     };
   });
+
+  if (isOverflow) {
+    bubbles.push({
+      type: 'bubble',
+      size: 'kilo',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'xl',
+        justifyContent: 'center',
+        alignItems: 'center',
+        contents: [
+          {
+            type: 'text',
+            text: `+ อีก ${items.length - maxItemsToShow} งวด`,
+            weight: 'bold',
+            size: 'lg',
+            color: '#ea580c',
+            align: 'center',
+            margin: 'md'
+          },
+          {
+            type: 'text',
+            text: 'ดูงวดชำระทั้งหมดได้ในระบบ',
+            size: 'sm',
+            color: '#6b7280',
+            wrap: true,
+            margin: 'sm',
+            align: 'center'
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'md',
+        contents: [{
+          type: 'button',
+          style: 'primary',
+          color: '#111827',
+          height: 'sm',
+          action: {
+            type: 'uri',
+            label: 'ดูงวดทั้งหมด',
+            uri: `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}&view=all`
+          }
+        }]
+      }
+    });
+  }
 
   return {
     type: 'flex',
