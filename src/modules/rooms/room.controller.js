@@ -134,3 +134,19 @@ export async function generateBills(req, res, next) {
     next(err);
   }
 }
+
+export async function notifyRoom(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { title, message, type } = req.body;
+    
+    if (!title || !message) {
+      return error(res, "title and message are required", STATUS_CODE.BAD_REQUEST);
+    }
+    
+    const result = await roomService.notifyRoom(id, { title, message, type });
+    return success(res, result, "Notification sent successfully", STATUS_CODE.OK);
+  } catch (err) {
+    next(err);
+  }
+}

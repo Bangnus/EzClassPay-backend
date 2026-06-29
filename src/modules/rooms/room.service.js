@@ -388,3 +388,88 @@ export async function removeMember(roomId, userId, managerId) {
   await roomRepo.removeMember(roomId, userId);
   return { message: "Member removed successfully" };
 }
+
+export async function notifyRoom(roomId, { title, message, type }) {
+  const room = await roomRepo.findById(roomId);
+  if (!room) {
+    const error = new Error(ERR_ROOM_NOT_FOUND);
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!room.lineGroupId) {
+    const error = new Error("Room is not connected to a LINE Group");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let headerColor = "#00c6ae"; // default primary (info)
+  if (type === "warning") headerColor = "#f59e0b"; // yellow
+  else if (type === "urgent") headerColor = "#dc2626"; // red
+
+  const flexMessage = {
+    type: "flex",
+    altText: `ประกาศ: ${title}`,
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: headerColor,
+        paddingTop: "12px",
+        paddingBottom: "12px",
+        contents: [
+          {
+            type: "text",
+            text: "📢 ประกาศจากผู้จัดการ",
+            weight: "bold",
+            size: "sm",
+            color: "#ffffff",
+            align: "center"
+          }
+        ]
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "lg",
+        spacing: "md",
+        contents: [
+          {
+            type: "text",
+            text: title,
+            weight: "bold",
+            size: "lg",
+            color: "#111827",
+            wrap: true,
+            align: "center"
+          },
+          {
+            type: "separator",
+            margin: "sm"
+          },
+          {
+            type: "text",
+            text: message,
+            size: "sm",
+            color: "#4b5563",
+            wrap: true,
+            margin: "sm"
+          }
+        ]
+      }
+    }
+  };
+
+  try {
+    await lineClient.pushMessage({
+      to: room.lineGroupId,
+      messages: [flexMessage]
+    });
+  } catch (err) {
+    console.error("Error sending custom notification:", err);
+    throw new Error("Failed to send notification via LINE");
+  }
+
+  return { success: true };
+}
