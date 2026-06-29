@@ -1,5 +1,6 @@
 import prisma from "../../../config/database.js";
 import { GROUP_WELCOME } from "../../../constants/messages.js";
+import { assignAllPastBillsToNewMember } from "../../bills/bill.service.js";
 
 export async function handleBotJoin(event, lineClient) {
   const groupId = event.source.groupId;
@@ -83,6 +84,15 @@ export async function handleMemberJoined(event, lineClient) {
   }
 
   if (names.length > 0) {
+    // กำหนดบิลที่ค้างอยู่ทั้งหมด (ตั้งแต่อดีตจนถึงปัจจุบัน) ให้กับสมาชิกใหม่
+    if (room.collectionType === "MONTHLY") {
+      try {
+        await assignAllPastBillsToNewMember(room.id);
+      } catch (e) {
+        console.error(`[MemberJoined] Failed to assign all past bills to new members in room ${room.id}:`, e.message);
+      }
+    }
+
     const botLineUrl = `https://line.me/R/ti/p/${process.env.LINE_BOT_ID || '@ไอดีบอท'}`;
     await lineClient.pushMessage({
       to: groupId,

@@ -33,6 +33,15 @@ export function findBillsByRoomAndMonth(roomId, month, year) {
   });
 }
 
+export function findAllUniqueBillPeriodsByRoom(roomId) {
+  return prisma.bill.findMany({
+    where: { roomId },
+    distinct: ["month", "year"],
+    select: { month: true, year: true },
+    orderBy: [{ year: "asc" }, { month: "asc" }],
+  });
+}
+
 export function findBillById(id) {
   return prisma.bill.findUnique({
     where: { id },

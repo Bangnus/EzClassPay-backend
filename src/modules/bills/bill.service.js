@@ -196,6 +196,16 @@ export async function generateBillsForRoom(roomId, month, year) {
   return { roomId: room.id, roomName: room.name, newBillsCreated: newBillsCount, membersNotified: notifiedCount };
 }
 
+export async function assignAllPastBillsToNewMember(roomId) {
+  const allPeriods = await billRepo.findAllUniqueBillPeriodsByRoom(roomId);
+  if (allPeriods && allPeriods.length > 0) {
+    console.log(`[assignAllPastBills] Found ${allPeriods.length} bill periods for room ${roomId}, triggering generation for missing members.`);
+    for (const period of allPeriods) {
+      await generateBillsForRoom(roomId, period.month, period.year);
+    }
+  }
+}
+
 function getThaiMonthName(month) {
   const names = [
     "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
