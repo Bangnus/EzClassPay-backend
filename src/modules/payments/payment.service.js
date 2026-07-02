@@ -201,3 +201,7 @@ export async function getPaymentHistory(roomId, options = {}) {
 export async function getPendingPayments(roomId) {
   return paymentRepo.findPendingByRoom(roomId);
 }
+
+export async function getUserPaymentHistory(lineUid) {
+  return paymentRepo.findAllByLineUid(lineUid);
+}

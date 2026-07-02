@@ -32,6 +32,9 @@ export function findByRoom(roomId, options = {}) {
   if (options.userId) {
     where.user = { id: options.userId };
   }
+  if (options.lineUid) {
+    where.lineUid = options.lineUid;
+  }
   
   return prisma.payment.findMany({
     where,
@@ -57,5 +60,16 @@ export function updateStatus(id, status) {
   return prisma.payment.update({
     where: { id },
     data: { status },
+  });
+}
+
+export function findAllByLineUid(lineUid) {
+  return prisma.payment.findMany({
+    where: { lineUid },
+    include: {
+      room: { select: { id: true, name: true, lineGroupId: true } },
+      user: { select: { id: true, displayName: true, lineUid: true, pictureUrl: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 }

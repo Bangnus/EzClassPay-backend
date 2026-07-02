@@ -37,7 +37,19 @@ export async function history(req, res, next) {
   try {
     const options = {};
     if (req.query.userId) options.userId = req.query.userId;
+    if (req.query.lineUid) options.lineUid = req.query.lineUid;
     const payments = await paymentService.getPaymentHistory(req.params.roomId, options);
+    return success(res, payments);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function userHistory(req, res, next) {
+  try {
+    const { lineUid } = req.params;
+    if (!lineUid) throw new Error("lineUid is required");
+    const payments = await paymentService.getUserPaymentHistory(lineUid);
     return success(res, payments);
   } catch (err) {
     next(err);
