@@ -150,3 +150,15 @@ export async function notifyRoom(req, res, next) {
     next(err);
   }
 }
+
+export async function getTransactions(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { month, year } = req.query;
+    
+    const transactions = await roomService.getRoomTransactions(id, { month, year });
+    return success(res, transactions);
+  } catch (err) {
+    next(err);
+  }
+}

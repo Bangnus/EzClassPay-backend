@@ -122,6 +122,7 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 | `GET`    | `/api/rooms/:id/members`         | ดูรายชื่อสมาชิกทั้งหมดในห้อง                       |
 | `DELETE` | `/api/rooms/:id/members/:userId` | ลบผู้ใช้ออกจากห้อง                                 |
 | `POST`   | `/api/rooms/:id/generate-bills`  | กดสั่งสร้างบิลของห้องในเดือนที่ระบุ (Manager Only) |
+| `GET`    | `/api/rooms/:id/transactions`    | ดึงประวัติรับ-จ่าย (Income/Expense) กรองเดือน/ปีได้ (`?month=x&year=y`) |
 
 **Example `POST /api/rooms`:**
 

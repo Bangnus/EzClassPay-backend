@@ -484,3 +484,88 @@ export async function notifyRoom(roomId, { title, message, type }) {
 
   return { success: true };
 }
+
+export async function getRoomTransactions(roomId, { month, year }) {
+  const room = await roomRepo.findById(roomId);
+  if (!room) {
+    const error = new Error(ERR_ROOM_NOT_FOUND);
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const queryYear = year ? parseInt(year, 10) : new Date().getFullYear();
+  let startDate, endDate;
+  if (month) {
+    const queryMonth = parseInt(month, 10);
+    startDate = new Date(queryYear, queryMonth - 1, 1);
+    endDate = new Date(queryYear, queryMonth, 1);
+  } else {
+    // If no month provided, maybe fetch for the whole year or all time
+    startDate = new Date(queryYear, 0, 1);
+    endDate = new Date(queryYear + 1, 0, 1);
+  }
+
+  const [payments, expenses] = await Promise.all([
+    prisma.payment.findMany({
+      where: {
+        roomId,
+        status: "APPROVED",
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+      include: {
+        user: { select: { displayName: true } },
+      },
+    }),
+    prisma.expense.findMany({
+      where: {
+        roomId,
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+    }),
+  ]);
+
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  const transactions = [];
+
+  payments.forEach((p) => {
+    totalIncome += p.amount;
+    transactions.push({
+      id: `inc_${p.id}`,
+      type: "INCOME",
+      title: `รับชำระจาก: ${p.user?.displayName || "สมาชิก"}`,
+      amount: p.amount,
+      createdAt: p.createdAt,
+    });
+  });
+
+  expenses.forEach((e) => {
+    totalExpense += e.amount;
+    transactions.push({
+      id: `exp_${e.id}`,
+      type: "EXPENSE",
+      title: e.title,
+      amount: e.amount,
+      createdAt: e.createdAt,
+    });
+  });
+
+  // Sort by createdAt descending (newest first)
+  transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  return {
+    transactions,
+    summary: {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+    },
+  };
+}
