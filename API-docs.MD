@@ -284,6 +284,8 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
 | `PATCH` | `/api/payments/:id/reject`           | ปฏิเสธการชำระเงิน                          |
 | `GET`   | `/api/payments/room/:roomId/pending` | ดูรายการชำระเงินที่รอตรวจสอบ               |
 | `GET`   | `/api/payments/room/:roomId/history` | ดูประวัติจ่าย (รองรับ Query `?userId=xxx`) |
+| `GET`   | `/api/payments/user/:lineUid/summary`| สรุปยอดรวมของผู้ใช้งาน (ยอดเรียกเก็บ, ค้างจ่าย, จ่ายแล้ว) พร้อมข้อมูลแยกตามห้อง |
+| `GET`   | `/api/payments/user/:lineUid`        | ดูประวัติการจ่ายเงินของผู้ใช้งานจากทุกห้อง (รองรับ Pagination: `?page=1&limit=10` สำหรับทำ Lazy Load) |
 
 **Example `POST /api/payments/initiate`:**
 
@@ -327,6 +329,51 @@ API ส่วนใหญ่จะตอบกลับในรูปแบบ 
       "createdAt": "2026-06-20T01:30:00.000Z"
     }
   ]
+}
+```
+
+**Example Response (`GET /api/payments/user/:lineUid?page=1&limit=10`):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "payment-uuid",
+        "roomId": "room-uuid",
+        "lineUid": "U12345",
+        "amount": 500,
+        "status": "APPROVED"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5
+  }
+}
+```
+
+**Example Response (`GET /api/payments/user/:lineUid/summary`):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalBilled": 2000,
+    "totalPaid": 1500,
+    "totalMissing": 500,
+    "roomStats": [
+      {
+        "roomId": "room-uuid",
+        "roomName": "ห้อง 6/1",
+        "billed": 2000,
+        "paid": 1500,
+        "missing": 500
+      }
+    ]
+  }
 }
 ```
 
