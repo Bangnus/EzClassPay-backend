@@ -202,6 +202,70 @@ export async function getPendingPayments(roomId) {
   return paymentRepo.findPendingByRoom(roomId);
 }
 
-export async function getUserPaymentHistory(lineUid) {
-  return paymentRepo.findAllByLineUid(lineUid);
+export async function getUserPaymentHistory(lineUid, options = {}) {
+  return paymentRepo.findAllByLineUid(lineUid, options);
+}
+
+export async function getUserSummary(lineUid) {
+  // Fetch all bills for this user's lineUid (Wait, billRepo.findBillsByUser uses userId, not lineUid)
+  // Let's use prisma directly to avoid cyclic dependencies or complex logic.
+  const [bills, payments] = await Promise.all([
+    prisma.bill.findMany({
+      where: { user: { lineUid } },
+      include: { room: { select: { name: true } } }
+    }),
+    prisma.payment.findMany({
+      where: { lineUid, status: "APPROVED" },
+      include: { room: { select: { name: true } } }
+    })
+  ]);
+
+  let totalBilled = 0;
+  let totalPaid = 0;
+
+  bills.forEach((b) => (totalBilled += b.amount || 0));
+  payments.forEach((p) => (totalPaid += p.amount || 0));
+
+  const totalMissing = totalBilled > totalPaid ? totalBilled - totalPaid : 0;
+
+  const roomStatsMap = {};
+
+  bills.forEach((b) => {
+    if (!roomStatsMap[b.roomId]) {
+      roomStatsMap[b.roomId] = {
+        roomId: b.roomId,
+        roomName: b.room?.name || "ห้อง",
+        billed: 0,
+        paid: 0,
+        missing: 0,
+      };
+    }
+    roomStatsMap[b.roomId].billed += b.amount || 0;
+  });
+
+  payments.forEach((p) => {
+    if (p.roomId) {
+      if (!roomStatsMap[p.roomId]) {
+        roomStatsMap[p.roomId] = {
+          roomId: p.roomId,
+          roomName: p.room?.name || "ห้อง",
+          billed: 0,
+          paid: 0,
+          missing: 0,
+        };
+      }
+      roomStatsMap[p.roomId].paid += p.amount || 0;
+    }
+  });
+
+  Object.values(roomStatsMap).forEach((stat) => {
+    stat.missing = stat.billed > stat.paid ? stat.billed - stat.paid : 0;
+  });
+
+  return {
+    totalBilled,
+    totalPaid,
+    totalMissing,
+    roomStats: Object.values(roomStatsMap).sort((a, b) => b.missing - a.missing),
+  };
 }

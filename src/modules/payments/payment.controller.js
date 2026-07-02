@@ -49,8 +49,22 @@ export async function userHistory(req, res, next) {
   try {
     const { lineUid } = req.params;
     if (!lineUid) throw new Error("lineUid is required");
-    const payments = await paymentService.getUserPaymentHistory(lineUid);
-    return success(res, payments);
+    const options = {};
+    if (req.query.page) options.page = parseInt(req.query.page, 10);
+    if (req.query.limit) options.limit = parseInt(req.query.limit, 10);
+    const result = await paymentService.getUserPaymentHistory(lineUid, options);
+    return success(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function userSummary(req, res, next) {
+  try {
+    const { lineUid } = req.params;
+    if (!lineUid) throw new Error("lineUid is required");
+    const result = await paymentService.getUserSummary(lineUid);
+    return success(res, result);
   } catch (err) {
     next(err);
   }

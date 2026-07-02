@@ -63,13 +63,30 @@ export function updateStatus(id, status) {
   });
 }
 
-export function findAllByLineUid(lineUid) {
-  return prisma.payment.findMany({
-    where: { lineUid },
-    include: {
-      room: { select: { id: true, name: true, lineGroupId: true } },
-      user: { select: { id: true, displayName: true, lineUid: true, pictureUrl: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+export async function findAllByLineUid(lineUid, options = {}) {
+  const page = options.page || 1;
+  const limit = options.limit || 10;
+  const skip = (page - 1) * limit;
+
+  const [data, total] = await Promise.all([
+    prisma.payment.findMany({
+      where: { lineUid },
+      include: {
+        room: { select: { id: true, name: true, lineGroupId: true } },
+        user: { select: { id: true, displayName: true, lineUid: true, pictureUrl: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.payment.count({ where: { lineUid } })
+  ]);
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  };
 }

@@ -8,6 +8,7 @@ router.patch("/:id/approve", paymentController.approve);
 router.patch("/:id/reject", paymentController.reject);
 router.get("/room/:roomId/history", paymentController.history);
 router.get("/room/:roomId/pending", paymentController.pending);
+router.get("/user/:lineUid/summary", paymentController.userSummary);
 router.get("/user/:lineUid", paymentController.userHistory);
 
 export default router;
