@@ -157,19 +157,36 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
         paddingAll: 'md',
         contents: isClickable 
           ? [{
-              type: 'button',
-              style: buttonStyle,
-              color: buttonColor,
-              height: 'sm',
-              action: action
+              type: 'box',
+              layout: 'vertical',
+              backgroundColor: buttonColor,
+              cornerRadius: 'md',
+              paddingTop: '12px',
+              paddingBottom: '12px',
+              paddingStart: 'md',
+              paddingEnd: 'md',
+              alignItems: 'center',
+              justifyContent: 'center',
+              action: action,
+              contents: [{
+                type: 'text',
+                text: buttonLabel,
+                color: '#ffffff',
+                weight: 'bold',
+                size: 'sm'
+              }]
             }]
           : [{
               type: 'box',
               layout: 'vertical',
               backgroundColor: buttonColor,
               cornerRadius: 'md',
-              paddingAll: 'sm',
+              paddingTop: '12px',
+              paddingBottom: '12px',
+              paddingStart: 'md',
+              paddingEnd: 'md',
               alignItems: 'center',
+              justifyContent: 'center',
               contents: [{
                 type: 'text',
                 text: buttonLabel,
