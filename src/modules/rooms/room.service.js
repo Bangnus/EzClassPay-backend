@@ -87,6 +87,7 @@ export async function createRoom(data) {
     periodicAmount: data.periodic_amount || null,
     promptpayNo: data.promptpay_no,
     lineGroupId: data.line_group_id || null,
+    isPremium: true,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Free trial: 30 days
     members: {
       create: {
@@ -290,11 +291,21 @@ async function sendRoomCreatedFlex(room, manager) {
               },
               {
                 type: "text",
+                text: "🎁 พิเศษ! ได้รับสิทธิ์ทดลองใช้งานฟรี 1 เดือนเต็ม!",
+                size: "sm",
+                color: "#ea580c",
+                weight: "bold",
+                wrap: true,
+                margin: "lg",
+                align: "center",
+              },
+              {
+                type: "text",
                 text: "อย่าลืมเพิ่มเพื่อน LINE OA เพื่อรับการแจ้งเตือนและชำระเงินนะครับ 🙏",
                 size: "xs",
                 color: "#9ca3af",
                 wrap: true,
-                margin: "lg",
+                margin: "sm",
                 align: "center",
               },
             ],

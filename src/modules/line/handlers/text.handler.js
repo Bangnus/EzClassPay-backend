@@ -77,18 +77,19 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
       : `https://liff.line.me/${process.env.LIFF_ID_PAY_BILL || ''}?roomId=${room.id}&${item.type}Id=${item.id}`;
     let action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
 
+    let isClickable = true;
     if (item.isPaid) {
       buttonColor = '#16a34a';
       buttonLabel = '✅ ชำระแล้ว';
-      action = { type: 'uri', label: buttonLabel, uri: 'https://line.me/R/' };
+      isClickable = false;
     } else if (item.paymentStatus === 'PENDING') {
       buttonColor = '#ea580c';
       buttonLabel = '⏳ รอตรวจสลิป';
-      action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
+      isClickable = false;
     } else if (item.paymentStatus === 'AWAITING_SLIP') {
       buttonColor = '#f59e0b';
       buttonLabel = '⏳ รอส่งสลิป';
-      action = { type: 'uri', label: buttonLabel, uri: liffPayUrl };
+      isClickable = false;
     }
 
     return {
@@ -154,13 +155,29 @@ export async function buildPaymentItemsMessage(room, userId, prisma) {
         type: 'box',
         layout: 'vertical',
         paddingAll: 'md',
-        contents: [{
-          type: 'button',
-          style: buttonStyle,
-          color: buttonColor,
-          height: 'sm',
-          action: action
-        }]
+        contents: isClickable 
+          ? [{
+              type: 'button',
+              style: buttonStyle,
+              color: buttonColor,
+              height: 'sm',
+              action: action
+            }]
+          : [{
+              type: 'box',
+              layout: 'vertical',
+              backgroundColor: buttonColor,
+              cornerRadius: 'md',
+              paddingAll: 'sm',
+              alignItems: 'center',
+              contents: [{
+                type: 'text',
+                text: buttonLabel,
+                color: '#ffffff',
+                weight: 'bold',
+                size: 'sm'
+              }]
+            }]
       }
     };
   });
