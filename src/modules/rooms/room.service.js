@@ -516,7 +516,7 @@ export async function getRoomTransactions(roomId, { month, year }) {
         },
       },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, pictureUrl: true } },
       },
     }),
     prisma.expense.findMany({
@@ -543,6 +543,7 @@ export async function getRoomTransactions(roomId, { month, year }) {
       title: `รับชำระจาก: ${p.user?.displayName || "สมาชิก"}`,
       amount: p.amount,
       createdAt: p.createdAt,
+      user: p.user ? { displayName: p.user.displayName, pictureUrl: p.user.pictureUrl } : null,
     });
   });
 
